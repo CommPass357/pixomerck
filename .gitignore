@@ -15,7 +15,7 @@ local.properties
 
 # Python / server
 .tmp/
-data/
+/data/
 server/.venv/
 __pycache__/
 server/.pytest_cache/
