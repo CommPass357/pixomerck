@@ -1,0 +1,35 @@
+# Gradle / Android
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+
+# Android outputs and signing
+*.apk
+*.aab
+*.jks
+*.keystore
+*.sha256
+
+# Python / server
+.tmp/
+data/
+server/.venv/
+__pycache__/
+server/.pytest_cache/
+server/.tmp/
+server/pytest-cache-files-*/
+server/data/
+server/runtime/
+server/vendor/
+server/**/*.pyc
+server/*.log
+
+# Release artifacts
+dist/
+
+# OS
+.DS_Store
+Thumbs.db

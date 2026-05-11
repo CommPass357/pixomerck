@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Pixomerck</string>
+    <string name="file_provider_authority">com.commpass.pixomerck.fileprovider</string>
+</resources>

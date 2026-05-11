@@ -1,0 +1,114 @@
+from __future__ import annotations
+
+import time
+from io import BytesIO
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+from PIL import Image
+
+from pixomerck.app import create_app
+from pixomerck.config import Settings
+from pixomerck.models import GenerationInput, HealthView
+
+
+class FakeBackend:
+    async def health(self) -> HealthView:
+        return HealthView(ok=True, backend_ready=True, gpu="fake-gpu", message="ready")
+
+    async def generate(self, request: GenerationInput) -> Path:
+        image = Image.open(request.image_path).convert("RGB")
+        image.thumbnail((request.size, request.size), Image.Resampling.LANCZOS)
+        request.output_path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(request.output_path)
+        return request.output_path
+
+
+def test_rejects_missing_invite_key(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+
+    with TestClient(app) as client:
+        response = client.get("/v1/pairing")
+
+    assert response.status_code == 401
+
+
+def test_health_is_public_and_reports_backend(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["backend_ready"] is True
+    assert response.json()["gpu"] == "fake-gpu"
+
+
+def test_job_lifecycle_and_result_download(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+    headers = {"X-Pixomerck-Key": "test-key"}
+
+    with TestClient(app) as client:
+        create = client.post(
+            "/v1/jobs",
+            headers=headers,
+            data={
+                "prompt": "turn the jacket silver",
+                "negative_prompt": "low quality",
+                "strength": "0.6",
+                "size": "512",
+            },
+            files={
+                "image": ("source.png", _png_bytes((40, 80, 120)), "image/png"),
+                "person_mask": ("mask.png", _png_bytes((255, 255, 255)), "image/png"),
+            },
+        )
+        assert create.status_code == 200
+        job_id = create.json()["id"]
+
+        status = None
+        for _ in range(30):
+            status = client.get(f"/v1/jobs/{job_id}", headers=headers)
+            assert status.status_code == 200
+            if status.json()["status"] == "completed":
+                break
+            time.sleep(0.1)
+
+        assert status is not None
+        assert status.json()["status"] == "completed"
+
+        image = client.get(f"/v1/jobs/{job_id}/image", headers=headers)
+        assert image.status_code == 200
+        assert image.headers["content-type"].startswith("image/png")
+
+
+def test_rejects_invalid_size(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/jobs",
+            headers={"X-Pixomerck-Key": "test-key"},
+            data={
+                "prompt": "turn the jacket silver",
+                "strength": "0.6",
+                "size": "640",
+            },
+            files={
+                "image": ("source.png", _png_bytes((40, 80, 120)), "image/png"),
+                "person_mask": ("mask.png", _png_bytes((255, 255, 255)), "image/png"),
+            },
+        )
+
+    assert response.status_code == 400
+
+
+def _settings(tmp_path: Path) -> Settings:
+    return Settings(data_dir=tmp_path, invite_key="test-key", backend="demo")
+
+
+def _png_bytes(color: tuple[int, int, int]) -> BytesIO:
+    buffer = BytesIO()
+    Image.new("RGB", (64, 64), color).save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer
