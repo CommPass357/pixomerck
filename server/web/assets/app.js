@@ -8,6 +8,9 @@ const els = {
     generateButton: document.querySelector("#generateButton"),
     healthText: document.querySelector("#healthText"),
     inviteKey: document.querySelector("#inviteKey"),
+    inviteKeyStatus: document.querySelector("#inviteKeyStatus"),
+    clearInviteKeyButton: document.querySelector("#clearInviteKeyButton"),
+    loginButton: document.querySelector("#loginButton"),
     maskCanvas: document.querySelector("#maskCanvas"),
     negativePrompt: document.querySelector("#negativePrompt"),
     nextStepText: document.querySelector("#nextStepText"),
@@ -48,18 +51,22 @@ const PROMPT_PRESETS = [
 let sourceBlob = null;
 let maskBlob = null;
 let cameraStream = null;
+let authenticated = false;
 
 init();
 
-function init() {
-    els.inviteKey.value = localStorage.getItem("pixomerck.inviteKey") || "";
+async function init() {
     els.apiOrigin.value = localStorage.getItem("pixomerck.apiOrigin") || "";
     els.prompt.value = localStorage.getItem("pixomerck.prompt") || "";
     els.negativePrompt.value = localStorage.getItem("pixomerck.negativePrompt") || els.negativePrompt.value;
     populatePromptPresets();
     syncPromptPreset();
 
-    els.inviteKey.addEventListener("input", persist);
+    els.inviteKey.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") login();
+    });
+    els.loginButton.addEventListener("click", login);
+    els.clearInviteKeyButton.addEventListener("click", logout);
     els.apiOrigin.addEventListener("input", persist);
     els.prompt.addEventListener("input", () => {
         persist();
@@ -78,14 +85,115 @@ function init() {
     clearCanvas(els.sourceCanvas);
     clearCanvas(els.maskCanvas);
     checkHealth();
+    setAuthenticated(false);
+    await restoreSession();
     refreshGenerateState();
 }
 
 function persist() {
-    localStorage.setItem("pixomerck.inviteKey", els.inviteKey.value.trim());
     localStorage.setItem("pixomerck.apiOrigin", els.apiOrigin.value.trim());
     localStorage.setItem("pixomerck.prompt", els.prompt.value);
     localStorage.setItem("pixomerck.negativePrompt", els.negativePrompt.value);
+}
+
+async function restoreSession() {
+    const paired = await acceptInviteKeyFromHash();
+    if (paired) return;
+
+    const savedInviteKey = localStorage.getItem("pixomerck.inviteKey");
+    if (savedInviteKey) {
+        try {
+            await createSession(savedInviteKey);
+        } catch {
+            setAuthenticated(false);
+        } finally {
+            localStorage.removeItem("pixomerck.inviteKey");
+        }
+        return;
+    }
+
+    await checkSession();
+}
+
+async function acceptInviteKeyFromHash() {
+    const url = new URL(window.location.href);
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const key = hash.get("pixomerck-key");
+    if (!key) return false;
+    url.hash = "";
+    window.history.replaceState(null, document.title, url.toString());
+    try {
+        await createSession(key.trim());
+        setStatus("Logged in");
+    } catch (error) {
+        setStatus(error.message || "Login failed");
+        setAuthenticated(false);
+    }
+    return true;
+}
+
+async function login() {
+    const password = els.inviteKey.value.trim();
+    if (!password) {
+        setStatus("Password needed");
+        els.inviteKey.focus();
+        return;
+    }
+
+    els.loginButton.disabled = true;
+    setStatus("Logging in");
+    try {
+        await createSession(password);
+        setStatus("Logged in");
+    } catch (error) {
+        setStatus(error.message || "Login failed");
+        setAuthenticated(false);
+    } finally {
+        els.loginButton.disabled = false;
+    }
+}
+
+async function logout() {
+    try {
+        await fetch(`${apiBase()}/v1/session`, {
+            credentials: "same-origin",
+            method: "DELETE",
+        });
+    } catch {
+        // Clearing local UI state is enough if the network is already gone.
+    }
+    setAuthenticated(false);
+    setStatus("Logged out");
+}
+
+async function createSession(password) {
+    const response = await fetch(`${apiBase()}/v1/session`, {
+        body: JSON.stringify({ invite_key: password }),
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+    });
+    if (!response.ok) throw new Error(await responseError(response));
+    els.inviteKey.value = "";
+    setAuthenticated(true);
+}
+
+async function checkSession() {
+    try {
+        const response = await fetch(`${apiBase()}/v1/session`, {
+            credentials: "same-origin",
+        });
+        setAuthenticated(response.ok);
+    } catch {
+        setAuthenticated(false);
+    }
+}
+
+function setAuthenticated(value) {
+    authenticated = value;
+    els.inviteKeyStatus.textContent = authenticated ? "Logged in" : "Not logged in";
+    els.loginButton.hidden = authenticated;
+    els.clearInviteKeyButton.hidden = !authenticated;
 }
 
 function populatePromptPresets() {
@@ -259,6 +367,14 @@ function refreshGenerateState() {
 }
 
 async function generate() {
+    if (!authenticated && els.inviteKey.value.trim()) {
+        await login();
+    }
+    if (!authenticated && !els.inviteKey.value.trim()) {
+        setStatus("Log in first");
+        els.inviteKey.focus();
+        return;
+    }
     if (!sourceBlob || !maskBlob) {
         setStatus("Select a photo first");
         return;
@@ -284,6 +400,7 @@ async function generate() {
         form.append("size", els.size.value);
 
         const response = await fetch(`${apiBase()}/v1/jobs`, {
+            credentials: "same-origin",
             method: "POST",
             headers: authHeaders(),
             body: form,
@@ -302,6 +419,7 @@ async function pollJob(jobId) {
     let attempt = 0;
     while (attempt < 240) {
         const response = await fetch(`${apiBase()}/v1/jobs/${jobId}`, {
+            credentials: "same-origin",
             headers: authHeaders(),
         });
         if (!response.ok) throw new Error(await responseError(response));
@@ -325,6 +443,7 @@ async function pollJob(jobId) {
 
 async function showResult(jobId) {
     const response = await fetch(`${apiBase()}/v1/jobs/${jobId}/image`, {
+        credentials: "same-origin",
         headers: authHeaders(),
     });
     if (!response.ok) throw new Error(await responseError(response));
@@ -344,8 +463,10 @@ function authHeaders() {
 async function responseError(response) {
     try {
         const body = await response.json();
+        if (response.status === 401) return "Login rejected. Check the password.";
         return body.detail || `HTTP ${response.status}`;
     } catch {
+        if (response.status === 401) return "Login rejected. Check the password.";
         return `HTTP ${response.status}`;
     }
 }

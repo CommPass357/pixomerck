@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Pixomerck</title>
-        <link rel="stylesheet" href="/assets/styles.css?v=0.1.2" />
+        <link rel="stylesheet" href="/assets/styles.css?v=0.1.5" />
     </head>
     <body>
         <main class="shell">
@@ -19,9 +19,16 @@
             <section class="workspace" aria-label="Pixomerck editor">
                 <aside class="panel controls">
                     <label>
-                        Invite key
-                        <input id="inviteKey" type="password" autocomplete="current-password" />
+                        Password
+                        <input id="inviteKey" type="password" autocomplete="current-password" placeholder="Pixomerck password" />
                     </label>
+                    <div class="key-actions">
+                        <span id="inviteKeyStatus">Not logged in</span>
+                        <div class="key-buttons">
+                            <button id="loginButton" type="button">Log in</button>
+                            <button id="clearInviteKeyButton" type="button">Log out</button>
+                        </div>
+                    </div>
 
                     <label>
                         API origin
@@ -93,6 +100,6 @@
             </section>
         </main>
 
-        <script src="/assets/app.js?v=0.1.2" type="module"></script>
+        <script src="/assets/app.js?v=0.1.5" type="module"></script>
     </body>
 </html>

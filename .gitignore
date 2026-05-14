@@ -1,16 +1,7 @@
-# Gradle / Android
-.gradle/
-build/
-local.properties
-*.iml
+# Editor / local build state
 .idea/
-.kotlin/
-
-# Android outputs and signing
-*.apk
-*.aab
-*.jks
-*.keystore
+*.iml
+local.properties
 *.sha256
 
 # Python / server

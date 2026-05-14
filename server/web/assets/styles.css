@@ -91,6 +91,26 @@ label {
     font-weight: 650;
 }
 
+.key-actions {
+    align-items: center;
+    color: #b8c7c1;
+    display: flex;
+    font-size: 0.86rem;
+    gap: 10px;
+    justify-content: space-between;
+    margin-top: -8px;
+}
+
+.key-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.key-buttons button {
+    min-height: 34px;
+    padding: 6px 10px;
+}
+
 input,
 select,
 textarea {

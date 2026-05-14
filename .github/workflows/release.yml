@@ -16,21 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Android unit tests
-        run: ./gradlew :app:testDebugUnitTest
-
-      - name: Build debug APK
-        run: ./gradlew :app:assembleDebug
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -49,16 +34,12 @@ jobs:
           $Version = "${env:GITHUB_REF_NAME}".TrimStart("v")
           if (-not $Version) { $Version = "0.1.0" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $Apk = "dist/Pixomerck-Android-v$Version-debug.apk"
-          Copy-Item app/build/outputs/apk/debug/app-debug.apk $Apk
-          $Hash = Get-FileHash -Algorithm SHA256 $Apk
-          "$($Hash.Hash.ToLower())  $(Split-Path $Apk -Leaf)" | Set-Content "$Apk.sha256" -Encoding ASCII
           ./server/scripts/package.ps1 -Version $Version -OutputDir dist
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pixomerck-v0.1.0-assets
+          name: pixomerck-server-assets
           path: dist/*
 
       - name: Publish GitHub Release

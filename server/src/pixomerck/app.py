@@ -4,16 +4,21 @@ from contextlib import asynccontextmanager
 import socket
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-from .auth import invite_header, require_invite_key
+from .auth import SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, auth_credentials, create_session_token, require_invite_key
 from .backend import DemoBackend, GenerationBackend
 from .comfyui import ComfyUiBackend
 from .config import Settings, invite_key, load_settings
 from .jobs import JobManager
 from .models import HealthView, JobView, PairingView
+
+
+class SessionLogin(BaseModel):
+    invite_key: str
 
 
 def create_app(settings: Settings | None = None, backend: GenerationBackend | None = None) -> FastAPI:
@@ -45,8 +50,8 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
         async def web_app_alias() -> FileResponse:
             return FileResponse(web_dir / "index.html", media_type="text/html")
 
-    def auth(header_value: str | None = Depends(invite_header)) -> None:
-        require_invite_key(settings, header_value)
+    def auth(credentials=Depends(auth_credentials)) -> None:
+        require_invite_key(settings, credentials)
 
     @app.get("/health", response_model=HealthView)
     async def health() -> HealthView:
@@ -59,6 +64,29 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
             "public_hostname": settings.public_hostname,
             "public_url": f"https://{settings.public_hostname}",
         }
+
+    @app.post("/v1/session", include_in_schema=False)
+    async def login(payload: SessionLogin, response: Response) -> dict[str, bool]:
+        require_invite_key(settings, payload.invite_key)
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=create_session_token(settings),
+            max_age=SESSION_MAX_AGE_SECONDS,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            path="/",
+        )
+        return {"ok": True}
+
+    @app.get("/v1/session", include_in_schema=False, dependencies=[Depends(auth)])
+    async def session() -> dict[str, bool]:
+        return {"authenticated": True}
+
+    @app.delete("/v1/session", include_in_schema=False)
+    async def logout(response: Response) -> dict[str, bool]:
+        response.delete_cookie(SESSION_COOKIE, path="/")
+        return {"ok": True}
 
     @app.get("/v1/pairing", response_model=PairingView, dependencies=[Depends(auth)])
     async def pairing() -> PairingView:

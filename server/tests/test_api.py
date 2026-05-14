@@ -64,6 +64,22 @@ def test_web_config_exposes_public_hostname(tmp_path: Path) -> None:
     assert response.json()["public_hostname"] == "pix.hoesonly.fans"
 
 
+def test_web_login_cookie_authenticates_session(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+
+    with TestClient(app, base_url="https://testserver") as client:
+        login = client.post("/v1/session", json={"invite_key": "test-key"})
+        assert login.status_code == 200
+        assert "pixomerck_session" in login.headers["set-cookie"]
+
+        session = client.get("/v1/session")
+        assert session.status_code == 200
+        assert session.json()["authenticated"] is True
+
+        pairing = client.get("/v1/pairing")
+        assert pairing.status_code == 200
+
+
 def test_job_lifecycle_and_result_download(tmp_path: Path) -> None:
     app = create_app(_settings(tmp_path), FakeBackend())
     headers = {"X-Pixomerck-Key": "test-key"}

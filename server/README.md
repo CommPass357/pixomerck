@@ -1,9 +1,8 @@
-# Pixomerck Windows Server
+# Pixomerck Web Server
 
-This server accepts an image, person mask, and prompt from the Android app, queues one generation job at a time, and calls ComfyUI for the GPU-heavy image edit.
-
-It also serves the Pixomerck browser app from `/`, so the Cloudflare public
-hostname can point at this same process.
+This FastAPI service serves the Pixomerck browser app from `/`, accepts photo
+edit jobs from that web app, queues one generation at a time, and calls ComfyUI
+for GPU-heavy image edits.
 
 ## Install
 
@@ -14,7 +13,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -DownloadComfyUI
 The installer creates:
 
 - `.venv\` for the Pixomerck API service
-- `data\invite-key.txt` for Android pairing
+- `data\invite-key.txt` for the web login password
 - `runtime\pixomerck.env.ps1` for server configuration
 - `vendor\ComfyUI\` when `-DownloadComfyUI` is used
 
@@ -53,17 +52,18 @@ powershell -ExecutionPolicy Bypass -File .\scripts\cloudflare-pix.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\start-cloudflare.ps1
 ```
 
-That creates or reuses a named `pixomerck` tunnel, writes
-`%USERPROFILE%\.cloudflared\pixomerck.yml`, and adds the DNS route for
-`pix.hoesonly.fans`.
+## Browser Login
 
-## Pair Android
+Use the value in `data\invite-key.txt` as the web app password, or create a
+one-click login link:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\pair.ps1 -BaseUrl http://YOUR-PC-LAN-IP:8765
+powershell -ExecutionPolicy Bypass -File .\scripts\pair.ps1 -CopyWebLink
 ```
 
-Copy the URL and invite key into the Android app.
+The link uses a URL fragment so the password is not sent to the server or
+Cloudflare in the request URL. The browser exchanges it for a secure session
+cookie and removes the fragment from the address bar.
 
 ## Environment
 
@@ -73,15 +73,17 @@ Configuration lives in `runtime\pixomerck.env.ps1`:
 - `PIXOMERCK_BACKEND`: `comfyui` or `demo`
 - `PIXOMERCK_COMFYUI_URL`: default `http://127.0.0.1:8188`
 - `PIXOMERCK_MODEL`: ComfyUI checkpoint filename
-- `PIXOMERCK_TUNNEL_URL`: optional public tunnel URL shown by `/v1/pairing`
+- `PIXOMERCK_TUNNEL_URL`: optional public tunnel URL
 - `PIXOMERCK_PUBLIC_HOSTNAME`: browser/public hostname, default `pix.hoesonly.fans`
 
 ## API
 
 - `GET /health`
-- `GET /v1/pairing`
+- `POST /v1/session`
+- `DELETE /v1/session`
 - `POST /v1/jobs`
 - `GET /v1/jobs/{id}`
 - `GET /v1/jobs/{id}/image`
 
-Protected endpoints require `X-Pixomerck-Key`.
+Protected endpoints accept the secure browser session cookie. Scripted clients
+can still send `X-Pixomerck-Key` with the password from `data\invite-key.txt`.

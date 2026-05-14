@@ -59,5 +59,5 @@ def ensure_runtime(settings: Settings) -> None:
 
 def invite_key(settings: Settings) -> str:
     if settings.invite_key:
-        return settings.invite_key
-    return settings.invite_key_path.read_text(encoding="utf-8").strip()
+        return settings.invite_key.strip().lstrip("\ufeff")
+    return settings.invite_key_path.read_text(encoding="utf-8-sig").strip()
