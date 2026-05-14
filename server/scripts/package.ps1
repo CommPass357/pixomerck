@@ -21,6 +21,7 @@ Copy-Item -LiteralPath (Join-Path $Root "requirements.txt") -Destination $stage
 Copy-Item -LiteralPath (Join-Path $Root "README.md") -Destination $stage
 Copy-Item -LiteralPath (Join-Path $Root "src") -Destination $stage -Recurse
 Copy-Item -LiteralPath (Join-Path $Root "scripts") -Destination $stage -Recurse
+Copy-Item -LiteralPath (Join-Path $Root "web") -Destination $stage -Recurse
 
 Get-ChildItem -LiteralPath $stage -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force
 Get-ChildItem -LiteralPath $stage -Recurse -File -Filter "*.pyc" | Remove-Item -Force

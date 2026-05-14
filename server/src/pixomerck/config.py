@@ -15,6 +15,7 @@ class Settings:
     backend: str = "comfyui"
     comfyui_url: str = "http://127.0.0.1:8188"
     tunnel_url: str = ""
+    public_hostname: str = "pix.hoesonly.fans"
     default_model: str = "v1-5-pruned-emaonly.safetensors"
 
     @property
@@ -40,6 +41,7 @@ def load_settings() -> Settings:
         backend=os.getenv("PIXOMERCK_BACKEND", "comfyui").lower(),
         comfyui_url=os.getenv("PIXOMERCK_COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/"),
         tunnel_url=os.getenv("PIXOMERCK_TUNNEL_URL", "").rstrip("/"),
+        public_hostname=os.getenv("PIXOMERCK_PUBLIC_HOSTNAME", "pix.hoesonly.fans"),
         default_model=os.getenv("PIXOMERCK_MODEL", "v1-5-pruned-emaonly.safetensors"),
     )
     ensure_runtime(settings)

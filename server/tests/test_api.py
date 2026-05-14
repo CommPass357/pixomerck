@@ -44,6 +44,26 @@ def test_health_is_public_and_reports_backend(tmp_path: Path) -> None:
     assert response.json()["gpu"] == "fake-gpu"
 
 
+def test_web_app_is_served_from_root(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Pixomerck" in response.text
+
+
+def test_web_config_exposes_public_hostname(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+
+    with TestClient(app) as client:
+        response = client.get("/web-config")
+
+    assert response.status_code == 200
+    assert response.json()["public_hostname"] == "pix.hoesonly.fans"
+
+
 def test_job_lifecycle_and_result_download(tmp_path: Path) -> None:
     app = create_app(_settings(tmp_path), FakeBackend())
     headers = {"X-Pixomerck-Key": "test-key"}

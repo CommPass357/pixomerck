@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .auth import invite_header, require_invite_key
 from .backend import DemoBackend, GenerationBackend
@@ -31,6 +32,18 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
     app = FastAPI(title="Pixomerck Server", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.manager = manager
+    web_dir = _web_dir()
+
+    if web_dir.exists():
+        app.mount("/assets", StaticFiles(directory=web_dir / "assets"), name="assets")
+
+        @app.get("/", include_in_schema=False)
+        async def web_app() -> FileResponse:
+            return FileResponse(web_dir / "index.html", media_type="text/html")
+
+        @app.get("/app", include_in_schema=False)
+        async def web_app_alias() -> FileResponse:
+            return FileResponse(web_dir / "index.html", media_type="text/html")
 
     def auth(header_value: str | None = Depends(invite_header)) -> None:
         require_invite_key(settings, header_value)
@@ -39,6 +52,13 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
     async def health() -> HealthView:
         backend_health = await backend.health()
         return backend_health
+
+    @app.get("/web-config", include_in_schema=False)
+    async def web_config() -> dict[str, str]:
+        return {
+            "public_hostname": settings.public_hostname,
+            "public_url": f"https://{settings.public_hostname}",
+        }
 
     @app.get("/v1/pairing", response_model=PairingView, dependencies=[Depends(auth)])
     async def pairing() -> PairingView:
@@ -100,6 +120,10 @@ def _local_ip() -> str:
             return sock.getsockname()[0]
     except OSError:
         return "127.0.0.1"
+
+
+def _web_dir() -> Path:
+    return Path(__file__).resolve().parents[2] / "web"
 
 
 settings = load_settings()

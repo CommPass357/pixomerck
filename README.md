@@ -2,6 +2,13 @@
 
 Pixomerck is an Android photo editor that turns a camera or gallery photo into a prompt-driven AI edit. The Android app captures/selects the image, creates a local person mask, then sends the photo, mask, and prompt to a Windows generation server running on this machine.
 
+The same Windows server also serves a browser web app. The intended public URL
+is:
+
+```text
+https://pix.hoesonly.fans
+```
+
 ## What v0.1.0 Includes
 
 - Android app: Jetpack Compose, CameraX capture, Android Photo Picker, local MediaPipe person mask, LAN/tunnel server fallback, invite-key auth, job polling, result save/share.
@@ -30,6 +37,27 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pair.ps1 -BaseUrl http://YOUR
 ```
 
 Enter the LAN URL and invite key in the Android app. Add a tunnel URL in the app if you expose the server through Cloudflare Tunnel or another HTTPS tunnel.
+
+## Cloudflare Web App
+
+Pixomerck serves the web app from the same process as the API:
+
+```text
+http://127.0.0.1:8765/
+```
+
+For Cloudflare Tunnel, add a public hostname:
+
+```text
+pix.hoesonly.fans -> http://127.0.0.1:8765
+```
+
+If `cloudflared` is installed and authenticated, the server package includes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\cloudflare-pix.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\start-cloudflare.ps1
+```
 
 ## ComfyUI Model
 

@@ -7,6 +7,8 @@ param(
     [string]$ComfyUiDir = (Join-Path $InstallDir "vendor\ComfyUI"),
     [string]$ModelUrl = "",
     [string]$ModelName = "v1-5-pruned-emaonly.safetensors",
+    [string]$PublicHostname = "pix.hoesonly.fans",
+    [string]$TunnelUrl = "https://pix.hoesonly.fans",
     [int]$Port = 8765
 )
 
@@ -60,6 +62,8 @@ $envFile = Join-Path $InstallDir "runtime\pixomerck.env.ps1"
 `$env:PIXOMERCK_BACKEND = "$Backend"
 `$env:PIXOMERCK_COMFYUI_URL = "http://127.0.0.1:8188"
 `$env:PIXOMERCK_MODEL = "$ModelName"
+`$env:PIXOMERCK_PUBLIC_HOSTNAME = "$PublicHostname"
+`$env:PIXOMERCK_TUNNEL_URL = "$TunnelUrl"
 "@ | Set-Content -Path $envFile -Encoding UTF8
 
 Write-Host "Pixomerck server installed."
