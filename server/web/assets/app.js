@@ -10,14 +10,40 @@ const els = {
     inviteKey: document.querySelector("#inviteKey"),
     maskCanvas: document.querySelector("#maskCanvas"),
     negativePrompt: document.querySelector("#negativePrompt"),
+    nextStepText: document.querySelector("#nextStepText"),
     progress: document.querySelector("#progress"),
     prompt: document.querySelector("#prompt"),
+    promptPreset: document.querySelector("#promptPreset"),
     resultImage: document.querySelector("#resultImage"),
     size: document.querySelector("#size"),
     sourceCanvas: document.querySelector("#sourceCanvas"),
     statusText: document.querySelector("#statusText"),
     strength: document.querySelector("#strength"),
+    toolbarGenerateButton: document.querySelector("#toolbarGenerateButton"),
 };
+
+const PROMPT_PRESETS = [
+    "turn my outfit into sleek black cyberpunk streetwear, neon city reflections, realistic photo",
+    "make me look like a futuristic space explorer in a white suit, cinematic moonbase lighting",
+    "change my clothes into elegant red carpet fashion, soft studio flash, polished editorial photo",
+    "transform the background into a rainy Tokyo night street, keep my face natural and detailed",
+    "make my outfit chrome and glass futuristic armor, dramatic rim light, high fashion portrait",
+    "turn the scene into a warm golden hour beach portrait, natural skin, realistic lens blur",
+    "make me wear a vintage denim jacket and white tee, 1990s film photography style",
+    "change my outfit to a sharp tailored navy suit, luxury hotel lobby background",
+    "turn the photo into a fantasy adventurer portrait with leather jacket and forest light",
+    "make the background a clean modern photo studio with soft shadows and premium lighting",
+    "change my clothes into a bright athletic tracksuit, energetic sports poster lighting",
+    "make me look like a rock concert performer, black leather outfit, stage lights behind me",
+    "turn the scene into a snowy mountain portrait, warm coat, crisp realistic winter lighting",
+    "make my outfit pastel street fashion, colorful mural background, bright editorial photo",
+    "change the background to a classic car garage, retro jacket, cinematic warm lights",
+    "make me wear a futuristic medical lab coat, clean sci-fi laboratory background",
+    "turn my outfit into royal formalwear, grand palace interior, realistic dramatic portrait",
+    "make the photo look like a magazine cover shoot, stylish outfit, clean professional lighting",
+    "change my clothes into desert explorer gear, sunset dunes background, realistic photo",
+    "turn the background into a cozy coffee shop, casual layered outfit, warm natural light",
+];
 
 let sourceBlob = null;
 let maskBlob = null;
@@ -30,19 +56,24 @@ function init() {
     els.apiOrigin.value = localStorage.getItem("pixomerck.apiOrigin") || "";
     els.prompt.value = localStorage.getItem("pixomerck.prompt") || "";
     els.negativePrompt.value = localStorage.getItem("pixomerck.negativePrompt") || els.negativePrompt.value;
+    populatePromptPresets();
+    syncPromptPreset();
 
     els.inviteKey.addEventListener("input", persist);
     els.apiOrigin.addEventListener("input", persist);
     els.prompt.addEventListener("input", () => {
         persist();
+        syncPromptPreset();
         refreshGenerateState();
     });
+    els.promptPreset.addEventListener("change", onPromptPresetChange);
     els.negativePrompt.addEventListener("input", persist);
     els.galleryButton.addEventListener("click", () => els.fileInput.click());
     els.fileInput.addEventListener("change", onFilePicked);
     els.cameraButton.addEventListener("click", startCamera);
     els.captureButton.addEventListener("click", captureCameraFrame);
     els.generateButton.addEventListener("click", generate);
+    els.toolbarGenerateButton.addEventListener("click", generate);
 
     clearCanvas(els.sourceCanvas);
     clearCanvas(els.maskCanvas);
@@ -55,6 +86,34 @@ function persist() {
     localStorage.setItem("pixomerck.apiOrigin", els.apiOrigin.value.trim());
     localStorage.setItem("pixomerck.prompt", els.prompt.value);
     localStorage.setItem("pixomerck.negativePrompt", els.negativePrompt.value);
+}
+
+function populatePromptPresets() {
+    const fragment = document.createDocumentFragment();
+    PROMPT_PRESETS.forEach((prompt, index) => {
+        const option = document.createElement("option");
+        option.value = prompt;
+        option.textContent = `${index + 1}. ${prompt}`;
+        fragment.append(option);
+    });
+    els.promptPreset.append(fragment);
+}
+
+function onPromptPresetChange() {
+    if (!els.promptPreset.value) return;
+    els.prompt.value = els.promptPreset.value;
+    persist();
+    refreshGenerateState();
+    if (sourceBlob && maskBlob) {
+        els.toolbarGenerateButton.focus();
+    } else {
+        els.galleryButton.focus();
+    }
+}
+
+function syncPromptPreset() {
+    const matchingPreset = PROMPT_PRESETS.includes(els.prompt.value.trim());
+    els.promptPreset.value = matchingPreset ? els.prompt.value.trim() : "";
 }
 
 function apiBase() {
@@ -76,7 +135,19 @@ async function checkHealth() {
 async function onFilePicked(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    await setSourceBlob(file);
+    setStatus("Loading photo");
+    try {
+        await setSourceBlob(file);
+    } catch (error) {
+        sourceBlob = null;
+        maskBlob = null;
+        clearCanvas(els.sourceCanvas);
+        clearCanvas(els.maskCanvas);
+        setStatus(error.message || "Unable to load image");
+        refreshGenerateState();
+    } finally {
+        event.target.value = "";
+    }
 }
 
 async function startCamera() {
@@ -120,13 +191,18 @@ function stopCamera() {
 
 async function setSourceBlob(blob) {
     sourceBlob = blob;
-    const bitmap = await createImageBitmap(blob);
+    const bitmap = await decodeImage(blob);
     drawContain(els.sourceCanvas, bitmap);
     drawFallbackPersonMask(els.maskCanvas, bitmap.width, bitmap.height);
     maskBlob = await canvasToBlob(els.maskCanvas, "image/png");
     els.resultImage.removeAttribute("src");
-    setStatus("Photo ready");
+    setStatus(els.prompt.value.trim().length >= 8 ? "Photo ready. Generate next." : "Photo ready. Add prompt.");
     refreshGenerateState();
+    if (els.prompt.value.trim().length < 8) {
+        els.prompt.focus();
+    } else {
+        els.toolbarGenerateButton.focus();
+    }
 }
 
 function drawContain(canvas, bitmap) {
@@ -166,14 +242,27 @@ function drawFallbackPersonMask(canvas, sourceWidth, sourceHeight) {
 function clearCanvas(canvas) {
     canvas.width = 640;
     canvas.height = 640;
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function refreshGenerateState() {
-    els.generateButton.disabled = !sourceBlob || !maskBlob || els.prompt.value.trim().length < 8;
+    const promptReady = els.prompt.value.trim().length >= 8;
+    const photoReady = Boolean(sourceBlob && maskBlob);
+    const canGenerate = promptReady && photoReady;
+    els.generateButton.disabled = !canGenerate;
+    els.toolbarGenerateButton.disabled = !canGenerate;
+
+    const nextStep = nextStepMessage(promptReady, photoReady);
+    els.generateButton.title = nextStep;
+    els.toolbarGenerateButton.title = nextStep;
+    els.nextStepText.textContent = nextStep;
 }
 
 async function generate() {
-    if (!sourceBlob || !maskBlob) return;
+    if (!sourceBlob || !maskBlob) {
+        setStatus("Select a photo first");
+        return;
+    }
     const prompt = els.prompt.value.trim();
     if (prompt.length < 8) {
         setStatus("Prompt needed");
@@ -270,12 +359,28 @@ function canvasToBlob(canvas, type, quality) {
     });
 }
 
+async function decodeImage(blob) {
+    try {
+        return await createImageBitmap(blob);
+    } catch (error) {
+        throw new Error("Could not read that image. Try a JPG, PNG, or WebP photo.");
+    }
+}
+
 function setBusy(busy) {
     els.generateButton.disabled = busy;
+    els.toolbarGenerateButton.disabled = busy;
     els.galleryButton.disabled = busy;
     els.cameraButton.disabled = busy;
     els.captureButton.disabled = busy;
     if (!busy) refreshGenerateState();
+}
+
+function nextStepMessage(promptReady, photoReady) {
+    if (!promptReady && !photoReady) return "Type a prompt, then select a photo.";
+    if (!promptReady) return "Type a prompt with at least 8 characters.";
+    if (!photoReady) return "Select Image or Camera to add a photo.";
+    return "Ready. Tap Generate.";
 }
 
 function setStatus(text) {

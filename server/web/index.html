@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Pixomerck</title>
-        <link rel="stylesheet" href="/assets/styles.css" />
+        <link rel="stylesheet" href="/assets/styles.css?v=0.1.2" />
     </head>
     <body>
         <main class="shell">
@@ -26,6 +26,13 @@
                     <label>
                         API origin
                         <input id="apiOrigin" type="url" placeholder="same origin" />
+                    </label>
+
+                    <label>
+                        Prompt presets
+                        <select id="promptPreset">
+                            <option value="">Custom prompt</option>
+                        </select>
                     </label>
 
                     <label>
@@ -53,6 +60,7 @@
                     </div>
 
                     <button id="generateButton" class="primary" disabled>Generate</button>
+                    <p id="nextStepText" class="next-step">Add a prompt and select a photo.</p>
                     <progress id="progress" value="0" max="1"></progress>
                 </aside>
 
@@ -61,6 +69,7 @@
                         <button id="galleryButton">Select Image</button>
                         <button id="cameraButton">Camera</button>
                         <button id="captureButton" hidden>Capture</button>
+                        <button id="toolbarGenerateButton" class="primary toolbar-generate" disabled>Generate</button>
                         <input id="fileInput" type="file" accept="image/*" hidden />
                     </div>
 
@@ -84,6 +93,6 @@
             </section>
         </main>
 
-        <script src="/assets/app.js" type="module"></script>
+        <script src="/assets/app.js?v=0.1.2" type="module"></script>
     </body>
 </html>

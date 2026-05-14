@@ -142,6 +142,12 @@ progress {
     width: 100%;
 }
 
+.next-step {
+    color: #b8c7c1;
+    font-size: 0.86rem;
+    margin: -4px 0 0;
+}
+
 .stage {
     min-height: 680px;
     padding: 14px;
@@ -153,6 +159,10 @@ progress {
     gap: 10px;
     justify-content: flex-end;
     margin-bottom: 12px;
+}
+
+.toolbar-generate {
+    min-width: 120px;
 }
 
 #cameraPreview {
