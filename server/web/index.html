@@ -4,32 +4,47 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Pixomerck</title>
-        <link rel="stylesheet" href="/assets/styles.css?v=0.1.5" />
+        <link rel="stylesheet" href="/assets/styles.css?v=0.1.6" />
     </head>
     <body>
-        <main class="shell">
+        <section id="authSplash" class="auth-splash" aria-label="Pixomerck login">
+            <form id="authForm" class="auth-card">
+                <h1>Pixomerck</h1>
+                <p>Log in to use the photo generator.</p>
+
+                <label>
+                    Email
+                    <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" required />
+                </label>
+
+                <label>
+                    Password
+                    <input id="authPassword" type="password" autocomplete="current-password" placeholder="Password" required />
+                </label>
+
+                <div class="auth-buttons">
+                    <button id="authLoginButton" class="primary" type="submit">Log in</button>
+                    <button id="authCreateButton" type="button">Create account</button>
+                </div>
+
+                <p id="authStatus" class="auth-status">Create an account or log in to continue.</p>
+            </form>
+        </section>
+
+        <main id="appShell" class="shell" hidden>
             <header class="topbar">
                 <div>
                     <h1>Pixomerck</h1>
                     <p id="healthText">Checking server</p>
                 </div>
-                <div class="status" id="statusText">Idle</div>
+                <div class="top-actions">
+                    <button id="logoutButton" type="button">Log out</button>
+                    <div class="status" id="statusText">Idle</div>
+                </div>
             </header>
 
             <section class="workspace" aria-label="Pixomerck editor">
                 <aside class="panel controls">
-                    <label>
-                        Password
-                        <input id="inviteKey" type="password" autocomplete="current-password" placeholder="Pixomerck password" />
-                    </label>
-                    <div class="key-actions">
-                        <span id="inviteKeyStatus">Not logged in</span>
-                        <div class="key-buttons">
-                            <button id="loginButton" type="button">Log in</button>
-                            <button id="clearInviteKeyButton" type="button">Log out</button>
-                        </div>
-                    </div>
-
                     <label>
                         API origin
                         <input id="apiOrigin" type="url" placeholder="same origin" />
@@ -100,6 +115,6 @@
             </section>
         </main>
 
-        <script src="/assets/app.js?v=0.1.5" type="module"></script>
+        <script src="/assets/app.js?v=0.1.6" type="module"></script>
     </body>
 </html>

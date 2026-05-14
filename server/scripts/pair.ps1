@@ -1,7 +1,5 @@
 param(
-    [string]$BaseUrl = "http://127.0.0.1:8765",
-    [string]$WebUrl = "https://pix.hoesonly.fans",
-    [switch]$CopyWebLink
+    [string]$BaseUrl = "http://127.0.0.1:8765"
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,15 +11,7 @@ if (-not (Test-Path $InvitePath)) {
 }
 
 $InviteKey = Get-Content $InvitePath
-$EncodedKey = [System.Uri]::EscapeDataString($InviteKey)
-$WebPairingLink = "$($WebUrl.TrimEnd('/'))/#pixomerck-key=$EncodedKey"
 
-Write-Host "Pixomerck browser login"
+Write-Host "Pixomerck API access"
 Write-Host "Server URL: $BaseUrl"
-Write-Host "Password: $InviteKey"
-Write-Host "Web pairing link: $WebPairingLink"
-
-if ($CopyWebLink) {
-    Set-Clipboard -Value $WebPairingLink
-    Write-Host "Copied web pairing link to clipboard."
-}
+Write-Host "API key: $InviteKey"

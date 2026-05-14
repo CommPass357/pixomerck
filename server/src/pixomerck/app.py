@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from .accounts import authenticate_user, create_user
 from .auth import SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, auth_credentials, create_session_token, require_invite_key
 from .backend import DemoBackend, GenerationBackend
 from .comfyui import ComfyUiBackend
@@ -18,7 +19,14 @@ from .models import HealthView, JobView, PairingView
 
 
 class SessionLogin(BaseModel):
-    invite_key: str
+    email: str | None = None
+    password: str | None = None
+    invite_key: str | None = None
+
+
+class AccountCreate(BaseModel):
+    email: str
+    password: str
 
 
 def create_app(settings: Settings | None = None, backend: GenerationBackend | None = None) -> FastAPI:
@@ -67,7 +75,14 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
 
     @app.post("/v1/session", include_in_schema=False)
     async def login(payload: SessionLogin, response: Response) -> dict[str, bool]:
-        require_invite_key(settings, payload.invite_key)
+        if payload.invite_key:
+            require_invite_key(settings, payload.invite_key)
+        elif payload.email and payload.password:
+            if not authenticate_user(settings, payload.email, payload.password):
+                raise HTTPException(status_code=401, detail="Invalid email or password.")
+        else:
+            raise HTTPException(status_code=400, detail="Email and password are required.")
+
         response.set_cookie(
             key=SESSION_COOKIE,
             value=create_session_token(settings),
@@ -78,6 +93,24 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
             path="/",
         )
         return {"ok": True}
+
+    @app.post("/v1/accounts", include_in_schema=False)
+    async def create_account(payload: AccountCreate, response: Response) -> dict[str, bool | str]:
+        try:
+            user = create_user(settings, payload.email, payload.password)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=create_session_token(settings),
+            max_age=SESSION_MAX_AGE_SECONDS,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            path="/",
+        )
+        return {"ok": True, "email": user["email"]}
 
     @app.get("/v1/session", include_in_schema=False, dependencies=[Depends(auth)])
     async def session() -> dict[str, bool]:

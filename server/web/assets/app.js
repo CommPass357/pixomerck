@@ -1,5 +1,13 @@
 const els = {
     apiOrigin: document.querySelector("#apiOrigin"),
+    appShell: document.querySelector("#appShell"),
+    authCreateButton: document.querySelector("#authCreateButton"),
+    authEmail: document.querySelector("#authEmail"),
+    authForm: document.querySelector("#authForm"),
+    authLoginButton: document.querySelector("#authLoginButton"),
+    authPassword: document.querySelector("#authPassword"),
+    authSplash: document.querySelector("#authSplash"),
+    authStatus: document.querySelector("#authStatus"),
     cameraButton: document.querySelector("#cameraButton"),
     cameraPreview: document.querySelector("#cameraPreview"),
     captureButton: document.querySelector("#captureButton"),
@@ -7,10 +15,7 @@ const els = {
     galleryButton: document.querySelector("#galleryButton"),
     generateButton: document.querySelector("#generateButton"),
     healthText: document.querySelector("#healthText"),
-    inviteKey: document.querySelector("#inviteKey"),
-    inviteKeyStatus: document.querySelector("#inviteKeyStatus"),
-    clearInviteKeyButton: document.querySelector("#clearInviteKeyButton"),
-    loginButton: document.querySelector("#loginButton"),
+    logoutButton: document.querySelector("#logoutButton"),
     maskCanvas: document.querySelector("#maskCanvas"),
     negativePrompt: document.querySelector("#negativePrompt"),
     nextStepText: document.querySelector("#nextStepText"),
@@ -62,11 +67,13 @@ async function init() {
     populatePromptPresets();
     syncPromptPreset();
 
-    els.inviteKey.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") login();
+    stripLegacyInviteHash();
+    els.authForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        login();
     });
-    els.loginButton.addEventListener("click", login);
-    els.clearInviteKeyButton.addEventListener("click", logout);
+    els.authCreateButton.addEventListener("click", createAccount);
+    els.logoutButton.addEventListener("click", logout);
     els.apiOrigin.addEventListener("input", persist);
     els.prompt.addEventListener("input", () => {
         persist();
@@ -86,7 +93,7 @@ async function init() {
     clearCanvas(els.maskCanvas);
     checkHealth();
     setAuthenticated(false);
-    await restoreSession();
+    await checkSession();
     refreshGenerateState();
 }
 
@@ -96,60 +103,55 @@ function persist() {
     localStorage.setItem("pixomerck.negativePrompt", els.negativePrompt.value);
 }
 
-async function restoreSession() {
-    const paired = await acceptInviteKeyFromHash();
-    if (paired) return;
-
-    const savedInviteKey = localStorage.getItem("pixomerck.inviteKey");
-    if (savedInviteKey) {
-        try {
-            await createSession(savedInviteKey);
-        } catch {
-            setAuthenticated(false);
-        } finally {
-            localStorage.removeItem("pixomerck.inviteKey");
-        }
-        return;
-    }
-
-    await checkSession();
-}
-
-async function acceptInviteKeyFromHash() {
+function stripLegacyInviteHash() {
     const url = new URL(window.location.href);
     const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
-    const key = hash.get("pixomerck-key");
-    if (!key) return false;
+    if (!hash.has("pixomerck-key")) return;
     url.hash = "";
     window.history.replaceState(null, document.title, url.toString());
-    try {
-        await createSession(key.trim());
-        setStatus("Logged in");
-    } catch (error) {
-        setStatus(error.message || "Login failed");
-        setAuthenticated(false);
-    }
-    return true;
 }
 
 async function login() {
-    const password = els.inviteKey.value.trim();
-    if (!password) {
-        setStatus("Password needed");
-        els.inviteKey.focus();
-        return;
-    }
+    const credentials = authCredentials();
+    if (!credentials) return;
 
-    els.loginButton.disabled = true;
-    setStatus("Logging in");
+    setAuthBusy(true);
+    setAuthStatus("Logging in");
     try {
-        await createSession(password);
+        await createSession(credentials.email, credentials.password);
         setStatus("Logged in");
+        setAuthStatus("");
     } catch (error) {
-        setStatus(error.message || "Login failed");
+        setAuthStatus(error.message || "Login failed");
         setAuthenticated(false);
     } finally {
-        els.loginButton.disabled = false;
+        setAuthBusy(false);
+    }
+}
+
+async function createAccount() {
+    const credentials = authCredentials();
+    if (!credentials) return;
+
+    setAuthBusy(true);
+    setAuthStatus("Creating account");
+    try {
+        const response = await fetch(`${apiBase()}/v1/accounts`, {
+            body: JSON.stringify(credentials),
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+        });
+        if (!response.ok) throw new Error(await responseError(response));
+        els.authPassword.value = "";
+        setAuthenticated(true);
+        setStatus("Account created");
+        setAuthStatus("");
+    } catch (error) {
+        setAuthStatus(error.message || "Account creation failed");
+        setAuthenticated(false);
+    } finally {
+        setAuthBusy(false);
     }
 }
 
@@ -166,15 +168,15 @@ async function logout() {
     setStatus("Logged out");
 }
 
-async function createSession(password) {
+async function createSession(email, password) {
     const response = await fetch(`${apiBase()}/v1/session`, {
-        body: JSON.stringify({ invite_key: password }),
+        body: JSON.stringify({ email, password }),
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         method: "POST",
     });
     if (!response.ok) throw new Error(await responseError(response));
-    els.inviteKey.value = "";
+    els.authPassword.value = "";
     setAuthenticated(true);
 }
 
@@ -191,9 +193,37 @@ async function checkSession() {
 
 function setAuthenticated(value) {
     authenticated = value;
-    els.inviteKeyStatus.textContent = authenticated ? "Logged in" : "Not logged in";
-    els.loginButton.hidden = authenticated;
-    els.clearInviteKeyButton.hidden = !authenticated;
+    els.authSplash.hidden = authenticated;
+    els.appShell.hidden = !authenticated;
+    if (!authenticated) {
+        setAuthStatus("Create an account or log in to continue.");
+    }
+    refreshGenerateState();
+}
+
+function authCredentials() {
+    const email = els.authEmail.value.trim();
+    const password = els.authPassword.value;
+    if (!email) {
+        setAuthStatus("Enter an email address.");
+        els.authEmail.focus();
+        return null;
+    }
+    if (password.length < 8) {
+        setAuthStatus("Use a password with at least 8 characters.");
+        els.authPassword.focus();
+        return null;
+    }
+    return { email, password };
+}
+
+function setAuthBusy(busy) {
+    els.authLoginButton.disabled = busy;
+    els.authCreateButton.disabled = busy;
+}
+
+function setAuthStatus(text) {
+    els.authStatus.textContent = text;
 }
 
 function populatePromptPresets() {
@@ -367,12 +397,10 @@ function refreshGenerateState() {
 }
 
 async function generate() {
-    if (!authenticated && els.inviteKey.value.trim()) {
-        await login();
-    }
-    if (!authenticated && !els.inviteKey.value.trim()) {
+    if (!authenticated) {
         setStatus("Log in first");
-        els.inviteKey.focus();
+        setAuthenticated(false);
+        els.authEmail.focus();
         return;
     }
     if (!sourceBlob || !maskBlob) {
@@ -456,17 +484,16 @@ async function showResult(jobId) {
 }
 
 function authHeaders() {
-    const inviteKey = els.inviteKey.value.trim();
-    return inviteKey ? { "X-Pixomerck-Key": inviteKey } : {};
+    return {};
 }
 
 async function responseError(response) {
     try {
         const body = await response.json();
-        if (response.status === 401) return "Login rejected. Check the password.";
+        if (response.status === 401) return "Log in again to continue.";
         return body.detail || `HTTP ${response.status}`;
     } catch {
-        if (response.status === 401) return "Login rejected. Check the password.";
+        if (response.status === 401) return "Log in again to continue.";
         return `HTTP ${response.status}`;
     }
 }

@@ -64,11 +64,20 @@ def test_web_config_exposes_public_hostname(tmp_path: Path) -> None:
     assert response.json()["public_hostname"] == "pix.hoesonly.fans"
 
 
-def test_web_login_cookie_authenticates_session(tmp_path: Path) -> None:
+def test_web_account_create_and_login_cookie_authenticates_session(tmp_path: Path) -> None:
     app = create_app(_settings(tmp_path), FakeBackend())
 
     with TestClient(app, base_url="https://testserver") as client:
-        login = client.post("/v1/session", json={"invite_key": "test-key"})
+        create = client.post("/v1/accounts", json={"email": "user@example.com", "password": "password123"})
+        assert create.status_code == 200
+        assert "pixomerck_session" in create.headers["set-cookie"]
+
+        second_create = client.post("/v1/accounts", json={"email": "second@example.com", "password": "password123"})
+        assert second_create.status_code == 200
+
+        client.delete("/v1/session")
+
+        login = client.post("/v1/session", json={"email": "user@example.com", "password": "password123"})
         assert login.status_code == 200
         assert "pixomerck_session" in login.headers["set-cookie"]
 
@@ -78,6 +87,17 @@ def test_web_login_cookie_authenticates_session(tmp_path: Path) -> None:
 
         pairing = client.get("/v1/pairing")
         assert pairing.status_code == 200
+
+
+def test_invite_key_session_still_supports_script_login(tmp_path: Path) -> None:
+    app = create_app(_settings(tmp_path), FakeBackend())
+
+    with TestClient(app, base_url="https://testserver") as client:
+        login = client.post("/v1/session", json={"invite_key": "test-key"})
+        assert login.status_code == 200
+
+        session = client.get("/v1/session")
+        assert session.status_code == 200
 
 
 def test_job_lifecycle_and_result_download(tmp_path: Path) -> None:

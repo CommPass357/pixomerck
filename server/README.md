@@ -13,7 +13,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -DownloadComfyUI
 The installer creates:
 
 - `.venv\` for the Pixomerck API service
-- `data\invite-key.txt` for the web login password
+- `data\invite-key.txt` for scripted API access
 - `runtime\pixomerck.env.ps1` for server configuration
 - `vendor\ComfyUI\` when `-DownloadComfyUI` is used
 
@@ -54,16 +54,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-cloudflare.ps1
 
 ## Browser Login
 
-Use the value in `data\invite-key.txt` as the web app password, or create a
-one-click login link:
+Open the web app and create an account with an email address and password. Open
+registration is enabled, and accounts are stored locally in:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\pair.ps1 -CopyWebLink
+```text
+data\users.json
 ```
 
-The link uses a URL fragment so the password is not sent to the server or
-Cloudflare in the request URL. The browser exchanges it for a secure session
-cookie and removes the fragment from the address bar.
+The browser exchanges valid credentials for a secure session cookie.
 
 ## Environment
 

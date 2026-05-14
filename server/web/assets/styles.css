@@ -18,11 +18,60 @@ body {
         #101417;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 button,
 input,
 select,
 textarea {
     font: inherit;
+}
+
+.auth-splash {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 18px;
+}
+
+.auth-card {
+    background: rgba(23, 29, 33, 0.95);
+    border: 1px solid #2e3d43;
+    border-radius: 8px;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.32);
+    display: grid;
+    gap: 14px;
+    max-width: 440px;
+    padding: 24px;
+    width: 100%;
+}
+
+.auth-card h1 {
+    font-size: clamp(2.4rem, 12vw, 4.6rem);
+}
+
+.auth-card p {
+    margin-top: -4px;
+}
+
+.auth-buttons,
+.top-actions {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+}
+
+.auth-buttons button {
+    flex: 1;
+}
+
+.auth-status {
+    color: #ffc857;
+    font-size: 0.9rem;
+    min-height: 1.3em;
 }
 
 .shell {
@@ -61,6 +110,10 @@ p {
     text-align: center;
 }
 
+.top-actions {
+    justify-content: flex-end;
+}
+
 .workspace {
     display: grid;
     gap: 16px;
@@ -89,26 +142,6 @@ label {
     gap: 7px;
     font-size: 0.9rem;
     font-weight: 650;
-}
-
-.key-actions {
-    align-items: center;
-    color: #b8c7c1;
-    display: flex;
-    font-size: 0.86rem;
-    gap: 10px;
-    justify-content: space-between;
-    margin-top: -8px;
-}
-
-.key-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.key-buttons button {
-    min-height: 34px;
-    padding: 6px 10px;
 }
 
 input,
@@ -245,6 +278,18 @@ img {
 }
 
 @media (max-width: 560px) {
+    .auth-card {
+        padding: 18px;
+    }
+
+    .auth-buttons {
+        flex-direction: column;
+    }
+
+    .auth-buttons button {
+        width: 100%;
+    }
+
     .shell {
         padding: 12px;
     }

@@ -13,11 +13,11 @@ https://pix.hoesonly.fans
 ## What It Includes
 
 - Browser web app served from the FastAPI process at `/`
-- Password login backed by a secure browser session cookie
+- Open email/password registration backed by a secure browser session cookie
 - FastAPI job API with a one-at-a-time generation queue
 - ComfyUI adapter for server-side image generation
 - Demo backend for UI testing without ComfyUI
-- PowerShell scripts for install, start, stop, status, login pairing, packaging,
+- PowerShell scripts for install, start, stop, status, API key lookup, packaging,
   and Cloudflare Tunnel setup
 
 ## Windows Setup
@@ -43,21 +43,20 @@ pix.hoesonly.fans -> http://127.0.0.1:8765
 
 ## Login
 
-The server creates a local password in:
+Open the web app and create an account with an email address and password. User
+accounts are stored locally in:
+
+```text
+server\data\users.json
+```
+
+Scripted API clients can still use the server API key in:
 
 ```text
 server\data\invite-key.txt
 ```
 
-Use that value as the web app password, or generate a one-click browser login
-link:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\server\scripts\pair.ps1 -CopyWebLink
-```
-
-The login link stores a secure session cookie in the browser. The raw password is
-not kept in browser local storage.
+Use `pair.ps1` to print the local server URL and API key when needed.
 
 ## ComfyUI Model
 
