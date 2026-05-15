@@ -36,20 +36,20 @@ const els = {
 
 const PROMPT_PRESETS = [
     {
-        label: "Cyberpunk Techwear Editorial",
-        prompt: "premium cyberpunk editorial portrait, tailored matte-black techwear jacket with subtle reflective piping, preserve the same face, beard if present, hands, pose, body shape, and held objects, realistic skin texture, controlled neon rim light, high-end commercial photography",
+        label: "Executive Editorial Portrait",
+        prompt: "premium executive editorial portrait, precision-tailored navy suit, crisp shirt, subtle luxury accessories, preserve exact facial identity, expression, hands, posture, body proportions, and any held objects, natural skin texture, 85mm commercial photography",
     },
     {
-        label: "Red Carpet Velvet Suit",
+        label: "Cyberpunk Techwear Campaign",
+        prompt: "premium cyberpunk fashion campaign, tailored matte-black techwear jacket with subtle reflective piping, preserve same face, beard if present, hands, pose, body shape, and held objects, realistic fabric engineering, controlled neon rim light, high-end commercial photography",
+    },
+    {
+        label: "Sci-Fi Mission Commander",
+        prompt: "cinematic sci-fi mission commander portrait, off-white technical field suit with clean panel seams and mission patches, preserve facial identity, expression, hands, pose, and any held object, realistic fabric folds, premium production-design lighting",
+    },
+    {
+        label: "Red Carpet Luxury",
         prompt: "luxury red-carpet wardrobe transformation, custom deep burgundy velvet dinner jacket, crisp black shirt, refined grooming, preserve identity, expression, hands, and posture, soft studio flash, polished magazine-cover realism",
-    },
-    {
-        label: "Sci-Fi Explorer Suit",
-        prompt: "cinematic sci-fi explorer wardrobe, off-white technical field suit with clean panel seams and mission patches, preserve facial identity and any held object, realistic fabric folds, soft moonbase key light, natural skin detail",
-    },
-    {
-        label: "Executive Magazine Portrait",
-        prompt: "modern executive portrait styling, perfectly fitted navy suit, white dress shirt, subtle pocket square, preserve face, hair, beard, hands, pose, and body proportions, premium hotel-lobby lighting, 85mm editorial photo",
     },
     {
         label: "Chrome Couture Armor",
@@ -70,46 +70,6 @@ const PROMPT_PRESETS = [
     {
         label: "Classic Rock Promo",
         prompt: "classic rock performer wardrobe, black leather jacket, charcoal shirt, understated silver accessories, preserve face, beard, hands, and pose, dramatic stage backlight, realistic concert-promo portrait",
-    },
-    {
-        label: "Clean Studio Headshot",
-        prompt: "clean studio headshot treatment, refined wardrobe in charcoal and cream neutrals, preserve exact facial identity and expression, natural skin texture, balanced softbox lighting, commercial portrait retouching",
-    },
-    {
-        label: "Retro-Futurist Synthwave",
-        prompt: "retro-futurist 1980s synthwave fashion, satin varsity jacket with tasteful neon accents, preserve identity and realistic hands, cinematic colored gels, authentic film grain, professional editorial finish",
-    },
-    {
-        label: "Royal Formalwear Portrait",
-        prompt: "royal formalwear transformation, tailored dark emerald ceremonial coat with subtle gold embroidery, preserve face, expression, pose, and body proportions, dramatic palace-style portrait lighting, photorealistic fabric detail",
-    },
-    {
-        label: "Premium Athletic Campaign",
-        prompt: "premium athletic campaign look, modern fitted performance jacket and technical shirt, preserve identity and natural anatomy, crisp sports-ad lighting, realistic sweat-free fabric texture, professional poster photography",
-    },
-    {
-        label: "Winter Expedition Catalog",
-        prompt: "winter expedition wardrobe, insulated charcoal parka with structured collar and realistic stitching, preserve face, beard if present, hands, and held object, cold soft daylight, high-end outdoor catalog realism",
-    },
-    {
-        label: "Desert Explorer Editorial",
-        prompt: "desert explorer editorial styling, breathable sand-colored field jacket, scarf detail, rugged but clean wardrobe, preserve identity, hand placement, and posture, warm sunset key light, realistic travel-photography finish",
-    },
-    {
-        label: "Chef-Owner Magazine Portrait",
-        prompt: "chef-owner magazine portrait styling, dark tailored apron over a crisp shirt, subtle premium kitchen-wear details, preserve face, hands, pose, and any held object, warm restaurant editorial lighting, photorealistic texture",
-    },
-    {
-        label: "Medical Sci-Fi Lab Coat",
-        prompt: "sleek medical sci-fi lab wardrobe, fitted white technical coat with minimal seams and soft blue accents, preserve identity and anatomy, clean clinical lighting, realistic fabric and skin detail",
-    },
-    {
-        label: "Classic Menswear Editorial",
-        prompt: "classic menswear editorial, camel overcoat layered over a black turtleneck, premium wool texture, preserve face, body shape, hands, and pose, soft natural window light, Vogue-style realism",
-    },
-    {
-        label: "Professional Creator Portrait",
-        prompt: "professional creator portrait, modern black utility vest over a refined tee, subtle tools or tech details, preserve identity, hands, and held object, clean key light with gentle rim light, high-end brand photography",
     },
     {
         label: "Cinematic Noir Portrait",
@@ -162,8 +122,8 @@ const BODY_PRESETS = [
 
 const BACKGROUND_PRESETS = [
     {
-        label: "Keep Original Scene",
-        prompt: "keep the original background composition mostly intact, improve lighting and color subtly without changing the location",
+        label: "Preserve Original Location",
+        prompt: "keep the original background composition mostly intact, remove visual distractions, subtly improve lighting and color without changing the location",
     },
     {
         label: "Clean Photo Studio",
@@ -200,14 +160,6 @@ const BACKGROUND_PRESETS = [
     {
         label: "Palace Interior",
         prompt: "grand palace interior background, dark wood, tasteful gold accents, dramatic portrait depth and realistic scale",
-    },
-    {
-        label: "Premium Kitchen",
-        prompt: "warm premium restaurant kitchen background, soft practical lights, stainless textures, magazine editorial realism",
-    },
-    {
-        label: "Urban Rooftop",
-        prompt: "modern urban rooftop background, distant skyline, soft evening atmosphere, professional lifestyle-photo depth",
     },
 ];
 
