@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Pixomerck</title>
-        <link rel="stylesheet" href="/assets/styles.css?v=0.1.7" />
+        <link rel="stylesheet" href="/assets/styles.css?v=0.1.9" />
     </head>
     <body>
         <section id="authSplash" class="auth-splash" aria-label="Pixomerck login">
@@ -50,12 +50,44 @@
                         <input id="apiOrigin" type="url" placeholder="same origin" />
                     </label>
 
-                    <label>
-                        Prompt presets
-                        <select id="promptPreset">
-                            <option value="">Custom prompt</option>
-                        </select>
-                    </label>
+                    <fieldset class="prompt-builder">
+                        <legend>Prompt builder</legend>
+
+                        <label>
+                            Concept
+                            <select id="promptPreset">
+                                <option value="">Custom concept</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Body / details
+                            <select id="bodyPreset">
+                                <option value="">No body modifier</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Background
+                            <select id="backgroundPreset">
+                                <option value="">No background modifier</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Items / props
+                            <select id="itemPreset">
+                                <option value="">No item modifier</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Environment / style
+                            <select id="environmentPreset">
+                                <option value="">No style modifier</option>
+                            </select>
+                        </label>
+                    </fieldset>
 
                     <label>
                         Prompt
@@ -115,6 +147,6 @@
             </section>
         </main>
 
-        <script src="/assets/app.js?v=0.1.7" type="module"></script>
+        <script src="/assets/app.js?v=0.1.9" type="module"></script>
     </body>
 </html>

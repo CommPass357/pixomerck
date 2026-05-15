@@ -8,13 +8,17 @@ const els = {
     authPassword: document.querySelector("#authPassword"),
     authSplash: document.querySelector("#authSplash"),
     authStatus: document.querySelector("#authStatus"),
+    backgroundPreset: document.querySelector("#backgroundPreset"),
+    bodyPreset: document.querySelector("#bodyPreset"),
     cameraButton: document.querySelector("#cameraButton"),
     cameraPreview: document.querySelector("#cameraPreview"),
     captureButton: document.querySelector("#captureButton"),
+    environmentPreset: document.querySelector("#environmentPreset"),
     fileInput: document.querySelector("#fileInput"),
     galleryButton: document.querySelector("#galleryButton"),
     generateButton: document.querySelector("#generateButton"),
     healthText: document.querySelector("#healthText"),
+    itemPreset: document.querySelector("#itemPreset"),
     logoutButton: document.querySelector("#logoutButton"),
     maskCanvas: document.querySelector("#maskCanvas"),
     negativePrompt: document.querySelector("#negativePrompt"),
@@ -31,32 +35,281 @@ const els = {
 };
 
 const PROMPT_PRESETS = [
-    "turn my outfit into sleek black cyberpunk streetwear, neon city reflections, realistic photo",
-    "make me look like a futuristic space explorer in a white suit, cinematic moonbase lighting",
-    "change my clothes into elegant red carpet fashion, soft studio flash, polished editorial photo",
-    "transform the background into a rainy Tokyo night street, keep my face natural and detailed",
-    "make my outfit chrome and glass futuristic armor, dramatic rim light, high fashion portrait",
-    "turn the scene into a warm golden hour beach portrait, natural skin, realistic lens blur",
-    "make me wear a vintage denim jacket and white tee, 1990s film photography style",
-    "change my outfit to a sharp tailored navy suit, luxury hotel lobby background",
-    "turn the photo into a fantasy adventurer portrait with leather jacket and forest light",
-    "make the background a clean modern photo studio with soft shadows and premium lighting",
-    "change my clothes into a bright athletic tracksuit, energetic sports poster lighting",
-    "make me look like a rock concert performer, black leather outfit, stage lights behind me",
-    "turn the scene into a snowy mountain portrait, warm coat, crisp realistic winter lighting",
-    "make my outfit pastel street fashion, colorful mural background, bright editorial photo",
-    "change the background to a classic car garage, retro jacket, cinematic warm lights",
-    "make me wear a futuristic medical lab coat, clean sci-fi laboratory background",
-    "turn my outfit into royal formalwear, grand palace interior, realistic dramatic portrait",
-    "make the photo look like a magazine cover shoot, stylish outfit, clean professional lighting",
-    "change my clothes into desert explorer gear, sunset dunes background, realistic photo",
-    "turn the background into a cozy coffee shop, casual layered outfit, warm natural light",
+    {
+        label: "Cyberpunk Techwear Editorial",
+        prompt: "premium cyberpunk editorial portrait, tailored matte-black techwear jacket with subtle reflective piping, preserve the same face, beard if present, hands, pose, body shape, and held objects, realistic skin texture, controlled neon rim light, high-end commercial photography",
+    },
+    {
+        label: "Red Carpet Velvet Suit",
+        prompt: "luxury red-carpet wardrobe transformation, custom deep burgundy velvet dinner jacket, crisp black shirt, refined grooming, preserve identity, expression, hands, and posture, soft studio flash, polished magazine-cover realism",
+    },
+    {
+        label: "Sci-Fi Explorer Suit",
+        prompt: "cinematic sci-fi explorer wardrobe, off-white technical field suit with clean panel seams and mission patches, preserve facial identity and any held object, realistic fabric folds, soft moonbase key light, natural skin detail",
+    },
+    {
+        label: "Executive Magazine Portrait",
+        prompt: "modern executive portrait styling, perfectly fitted navy suit, white dress shirt, subtle pocket square, preserve face, hair, beard, hands, pose, and body proportions, premium hotel-lobby lighting, 85mm editorial photo",
+    },
+    {
+        label: "Chrome Couture Armor",
+        prompt: "high-fashion chrome armor concept, lightweight polished graphite and brushed-metal panels over realistic clothing, preserve identity and natural anatomy, dramatic rim lighting, believable reflections, couture magazine shoot",
+    },
+    {
+        label: "Heritage Denim Campaign",
+        prompt: "heritage denim campaign look, dark selvedge denim jacket over a clean white tee, authentic stitching and texture, preserve face and hands, realistic casual portrait, Kodak Portra color, shallow depth of field",
+    },
+    {
+        label: "Luxury Streetwear Lookbook",
+        prompt: "premium streetwear lookbook edit, layered oversized bomber jacket, textured hoodie, designer sneakers if visible, preserve identity, pose, body shape, and held object, soft urban night lighting, photorealistic fashion catalog",
+    },
+    {
+        label: "Outdoor Adventure Catalog",
+        prompt: "outdoor adventure catalog styling, weatherproof olive technical jacket with subtle gear details, preserve facial identity and hand placement, realistic fabric wear, crisp natural light, professional lifestyle photography",
+    },
+    {
+        label: "Classic Rock Promo",
+        prompt: "classic rock performer wardrobe, black leather jacket, charcoal shirt, understated silver accessories, preserve face, beard, hands, and pose, dramatic stage backlight, realistic concert-promo portrait",
+    },
+    {
+        label: "Clean Studio Headshot",
+        prompt: "clean studio headshot treatment, refined wardrobe in charcoal and cream neutrals, preserve exact facial identity and expression, natural skin texture, balanced softbox lighting, commercial portrait retouching",
+    },
+    {
+        label: "Retro-Futurist Synthwave",
+        prompt: "retro-futurist 1980s synthwave fashion, satin varsity jacket with tasteful neon accents, preserve identity and realistic hands, cinematic colored gels, authentic film grain, professional editorial finish",
+    },
+    {
+        label: "Royal Formalwear Portrait",
+        prompt: "royal formalwear transformation, tailored dark emerald ceremonial coat with subtle gold embroidery, preserve face, expression, pose, and body proportions, dramatic palace-style portrait lighting, photorealistic fabric detail",
+    },
+    {
+        label: "Premium Athletic Campaign",
+        prompt: "premium athletic campaign look, modern fitted performance jacket and technical shirt, preserve identity and natural anatomy, crisp sports-ad lighting, realistic sweat-free fabric texture, professional poster photography",
+    },
+    {
+        label: "Winter Expedition Catalog",
+        prompt: "winter expedition wardrobe, insulated charcoal parka with structured collar and realistic stitching, preserve face, beard if present, hands, and held object, cold soft daylight, high-end outdoor catalog realism",
+    },
+    {
+        label: "Desert Explorer Editorial",
+        prompt: "desert explorer editorial styling, breathable sand-colored field jacket, scarf detail, rugged but clean wardrobe, preserve identity, hand placement, and posture, warm sunset key light, realistic travel-photography finish",
+    },
+    {
+        label: "Chef-Owner Magazine Portrait",
+        prompt: "chef-owner magazine portrait styling, dark tailored apron over a crisp shirt, subtle premium kitchen-wear details, preserve face, hands, pose, and any held object, warm restaurant editorial lighting, photorealistic texture",
+    },
+    {
+        label: "Medical Sci-Fi Lab Coat",
+        prompt: "sleek medical sci-fi lab wardrobe, fitted white technical coat with minimal seams and soft blue accents, preserve identity and anatomy, clean clinical lighting, realistic fabric and skin detail",
+    },
+    {
+        label: "Classic Menswear Editorial",
+        prompt: "classic menswear editorial, camel overcoat layered over a black turtleneck, premium wool texture, preserve face, body shape, hands, and pose, soft natural window light, Vogue-style realism",
+    },
+    {
+        label: "Professional Creator Portrait",
+        prompt: "professional creator portrait, modern black utility vest over a refined tee, subtle tools or tech details, preserve identity, hands, and held object, clean key light with gentle rim light, high-end brand photography",
+    },
+    {
+        label: "Cinematic Noir Portrait",
+        prompt: "cinematic noir wardrobe edit, tailored black trench coat and dark shirt, preserve the same person and realistic facial details, moody contrast lighting, restrained film grain, premium photoreal portrait",
+    },
+];
+
+const BODY_PRESETS = [
+    {
+        label: "Identity + Hands Locked",
+        prompt: "preserve the same facial identity, expression, beard or hair if present, natural hands, original pose, body proportions, and realistic anatomy",
+    },
+    {
+        label: "Refined Grooming",
+        prompt: "subtle professional grooming, clean facial detail, natural skin texture, realistic eyes, believable hair and beard texture, no plastic retouching",
+    },
+    {
+        label: "Executive Tailoring",
+        prompt: "perfectly fitted tailored suit silhouette, crisp collar, realistic shoulder structure, natural arm placement, premium wool fabric detail",
+    },
+    {
+        label: "Techwear Silhouette",
+        prompt: "structured technical jacket, matte utility panels, functional seams, subtle reflective accents, realistic fabric weight and folds",
+    },
+    {
+        label: "Leather Jacket Fit",
+        prompt: "premium black leather jacket, natural creasing, charcoal undershirt, realistic shoulder fit, preserve original posture and hand placement",
+    },
+    {
+        label: "Outdoor Layering",
+        prompt: "weatherproof outdoor layers, insulated jacket, practical collar and cuffs, realistic stitching, preserve natural body shape and stance",
+    },
+    {
+        label: "Formal Ceremony Coat",
+        prompt: "tailored ceremonial coat with tasteful embroidery, structured chest and shoulders, premium fabric texture, preserve face, hands, and anatomy",
+    },
+    {
+        label: "Athletic Campaign Fit",
+        prompt: "modern fitted performance jacket, technical shirt, clean athletic styling, realistic fabric stretch, preserve natural proportions and pose",
+    },
+    {
+        label: "Creator Utility Vest",
+        prompt: "modern black utility vest over a refined tee, subtle pockets and tool details, realistic fabric, preserve identity, hands, and held objects",
+    },
+    {
+        label: "Studio Portrait Wardrobe",
+        prompt: "clean charcoal and cream wardrobe styling, understated premium layers, natural body proportions, commercial portrait polish",
+    },
+];
+
+const BACKGROUND_PRESETS = [
+    {
+        label: "Keep Original Scene",
+        prompt: "keep the original background composition mostly intact, improve lighting and color subtly without changing the location",
+    },
+    {
+        label: "Clean Photo Studio",
+        prompt: "minimal modern photo studio background, soft shadows, clean floor-to-wall transition, premium commercial portrait setting",
+    },
+    {
+        label: "Rainy Neon Street",
+        prompt: "rainy neon city street background, wet pavement reflections, cinematic depth, realistic urban atmosphere",
+    },
+    {
+        label: "Luxury Hotel Lobby",
+        prompt: "luxury hotel lobby background, warm architectural lighting, polished stone, refined editorial atmosphere",
+    },
+    {
+        label: "Moonbase Interior",
+        prompt: "sleek moonbase interior background, soft white panels, distant window glow, believable sci-fi production design",
+    },
+    {
+        label: "Concert Stage",
+        prompt: "professional concert stage background, controlled haze, backlights, dark performance atmosphere, realistic depth of field",
+    },
+    {
+        label: "Snow Mountain",
+        prompt: "snowy mountain overlook background, crisp cold daylight, clean horizon, realistic outdoor catalog atmosphere",
+    },
+    {
+        label: "Desert Sunset",
+        prompt: "desert sunset background, warm golden sky, distant dunes, cinematic travel editorial realism",
+    },
+    {
+        label: "Classic Car Garage",
+        prompt: "classic car garage background, warm work lights, tasteful retro details, cinematic lifestyle photography",
+    },
+    {
+        label: "Palace Interior",
+        prompt: "grand palace interior background, dark wood, tasteful gold accents, dramatic portrait depth and realistic scale",
+    },
+    {
+        label: "Premium Kitchen",
+        prompt: "warm premium restaurant kitchen background, soft practical lights, stainless textures, magazine editorial realism",
+    },
+    {
+        label: "Urban Rooftop",
+        prompt: "modern urban rooftop background, distant skyline, soft evening atmosphere, professional lifestyle-photo depth",
+    },
+];
+
+const ITEM_PRESETS = [
+    {
+        label: "Preserve Held Object",
+        prompt: "preserve any object already in the hands, keep hand contact natural, avoid adding unrelated props",
+    },
+    {
+        label: "No Extra Props",
+        prompt: "do not add new props or accessories, keep the edit focused on the person, wardrobe, and scene",
+    },
+    {
+        label: "Futuristic Tablet",
+        prompt: "add or refine a slim futuristic tablet or compact keyboard-like device, realistic scale, natural hand grip, subtle screen glow",
+    },
+    {
+        label: "Camera Rig",
+        prompt: "add a professional camera or compact cinema rig if hands are available, believable hand placement and realistic lens reflections",
+    },
+    {
+        label: "Studio Microphone",
+        prompt: "add a premium studio microphone or broadcast mic as a tasteful prop, realistic metal texture, natural placement",
+    },
+    {
+        label: "Arcade Controller",
+        prompt: "add a refined arcade controller or retro gaming prop, realistic buttons and surface wear, natural hand interaction",
+    },
+    {
+        label: "Travel Duffel",
+        prompt: "add a premium travel duffel or technical gear bag near the subject, realistic fabric, grounded shadows",
+    },
+    {
+        label: "Coffee Cup",
+        prompt: "add a simple ceramic coffee cup or takeaway cup where appropriate, realistic hand grip and scale",
+    },
+    {
+        label: "Chef Tools",
+        prompt: "add subtle chef-owner props such as a folded towel or knife roll, safe placement, premium restaurant realism",
+    },
+    {
+        label: "Musician Guitar",
+        prompt: "add a classic electric guitar or guitar case as a tasteful music-promo prop, realistic scale and reflections",
+    },
+];
+
+const ENVIRONMENT_PRESETS = [
+    {
+        label: "Editorial Softbox",
+        prompt: "large softbox key light, gentle fill, controlled shadows, professional editorial portrait color",
+    },
+    {
+        label: "Neon Rim Light",
+        prompt: "controlled neon rim lighting, cool edge highlights, balanced face exposure, cinematic commercial finish",
+    },
+    {
+        label: "Golden Hour",
+        prompt: "warm golden-hour key light, soft natural contrast, realistic skin tones, tasteful lens depth",
+    },
+    {
+        label: "Cinematic Noir",
+        prompt: "moody noir lighting, restrained contrast, dark wardrobe detail, realistic film grain and clean face visibility",
+    },
+    {
+        label: "Magazine Cover",
+        prompt: "premium magazine-cover lighting, polished color grade, high-end retouching while preserving natural skin texture",
+    },
+    {
+        label: "Sports Ad",
+        prompt: "crisp sports-ad lighting, clean highlights, energetic contrast, realistic fabric texture, professional poster finish",
+    },
+    {
+        label: "Restaurant Editorial",
+        prompt: "warm restaurant editorial lighting, amber practicals, natural skin tones, tasteful commercial food-magazine color",
+    },
+    {
+        label: "Clinical Sci-Fi",
+        prompt: "clean clinical sci-fi lighting, soft blue accents, bright controlled exposure, realistic white surfaces",
+    },
+    {
+        label: "Film Photography",
+        prompt: "Kodak Portra inspired color, soft highlight rolloff, subtle grain, realistic 85mm portrait lens depth",
+    },
+    {
+        label: "High Fashion Flash",
+        prompt: "controlled high-fashion flash, crisp garment texture, clean specular highlights, couture editorial polish",
+    },
+];
+
+const PROMPT_GROUPS = [
+    { key: "promptPreset", items: PROMPT_PRESETS },
+    { key: "bodyPreset", items: BODY_PRESETS },
+    { key: "backgroundPreset", items: BACKGROUND_PRESETS },
+    { key: "itemPreset", items: ITEM_PRESETS },
+    { key: "environmentPreset", items: ENVIRONMENT_PRESETS },
 ];
 
 let sourceBlob = null;
 let maskBlob = null;
 let cameraStream = null;
 let authenticated = false;
+let lastBuiltPrompt = "";
 
 init();
 
@@ -64,8 +317,8 @@ async function init() {
     els.apiOrigin.value = localStorage.getItem("pixomerck.apiOrigin") || "";
     els.prompt.value = localStorage.getItem("pixomerck.prompt") || "";
     els.negativePrompt.value = localStorage.getItem("pixomerck.negativePrompt") || els.negativePrompt.value;
-    populatePromptPresets();
-    syncPromptPreset();
+    populatePromptBuilder();
+    syncPromptBuilder();
 
     stripLegacyInviteHash();
     els.authForm.addEventListener("submit", (event) => {
@@ -77,10 +330,12 @@ async function init() {
     els.apiOrigin.addEventListener("input", persist);
     els.prompt.addEventListener("input", () => {
         persist();
-        syncPromptPreset();
+        if (els.prompt.value !== lastBuiltPrompt) {
+            clearPromptBuilderSelection();
+        }
         refreshGenerateState();
     });
-    els.promptPreset.addEventListener("change", onPromptPresetChange);
+    PROMPT_GROUPS.forEach((group) => els[group.key].addEventListener("change", onPromptBuilderChange));
     els.negativePrompt.addEventListener("input", persist);
     els.galleryButton.addEventListener("click", () => els.fileInput.click());
     els.fileInput.addEventListener("change", onFilePicked);
@@ -226,20 +481,29 @@ function setAuthStatus(text) {
     els.authStatus.textContent = text;
 }
 
-function populatePromptPresets() {
-    const fragment = document.createDocumentFragment();
-    PROMPT_PRESETS.forEach((prompt, index) => {
-        const option = document.createElement("option");
-        option.value = prompt;
-        option.textContent = `${index + 1}. ${prompt}`;
-        fragment.append(option);
+function populatePromptBuilder() {
+    PROMPT_GROUPS.forEach((group) => {
+        const fragment = document.createDocumentFragment();
+        group.items.forEach((preset, index) => {
+            const option = document.createElement("option");
+            option.value = preset.prompt;
+            option.textContent = `${index + 1}. ${preset.label}`;
+            option.title = preset.prompt;
+            fragment.append(option);
+        });
+        els[group.key].append(fragment);
     });
-    els.promptPreset.append(fragment);
 }
 
-function onPromptPresetChange() {
-    if (!els.promptPreset.value) return;
-    els.prompt.value = els.promptPreset.value;
+function onPromptBuilderChange() {
+    const parts = PROMPT_GROUPS.map((group) => els[group.key].value.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+
+    const needsBase = !els.promptPreset.value;
+    const promptParts = needsBase ? ["professional photorealistic portrait edit"] : [];
+    promptParts.push(...parts);
+    els.prompt.value = promptParts.join(", ");
+    lastBuiltPrompt = els.prompt.value;
     persist();
     refreshGenerateState();
     if (sourceBlob && maskBlob) {
@@ -249,9 +513,19 @@ function onPromptPresetChange() {
     }
 }
 
-function syncPromptPreset() {
-    const matchingPreset = PROMPT_PRESETS.includes(els.prompt.value.trim());
-    els.promptPreset.value = matchingPreset ? els.prompt.value.trim() : "";
+function syncPromptBuilder() {
+    const prompt = els.prompt.value.trim();
+    const matchingPreset = PROMPT_PRESETS.find((preset) => preset.prompt === prompt);
+    clearPromptBuilderSelection();
+    if (!matchingPreset) return;
+    els.promptPreset.value = matchingPreset.prompt;
+    lastBuiltPrompt = prompt;
+}
+
+function clearPromptBuilderSelection() {
+    PROMPT_GROUPS.forEach((group) => {
+        els[group.key].value = "";
+    });
 }
 
 function apiBase() {
