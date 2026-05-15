@@ -221,8 +221,8 @@ def test_background_intent_is_detected_and_strength_is_boosted() -> None:
     prompt = "replace the background with a luxury hotel lobby"
 
     assert _resolve_edit_target(prompt, "subject") == "background"
-    assert _effective_strength(0.48, "background", prompt) == 0.72
-    assert _effective_strength(0.75, "background", prompt) == 0.75
+    assert _effective_strength(0.48, "background", prompt) == 0.82
+    assert _effective_strength(0.9, "background", prompt) == 0.9
     assert _effective_strength(0.48, "background", "keep the original background but improve lighting") == 0.48
 
 
@@ -343,10 +343,14 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
 
     assert "replace the entire background" in workflow["2"]["inputs"]["text"]
     assert "avoid readable signs" in workflow["2"]["inputs"]["text"]
+    assert "avoid screens" in workflow["2"]["inputs"]["text"]
+    assert "plain undecorated walls" in workflow["2"]["inputs"]["text"]
     assert "empty background without extra people" in workflow["2"]["inputs"]["text"]
     assert "gibberish text" in workflow["3"]["inputs"]["text"]
     assert "billboard text" in workflow["3"]["inputs"]["text"]
     assert "background faces" in workflow["3"]["inputs"]["text"]
+    assert "television screens" in workflow["3"]["inputs"]["text"]
+    assert "black rectangles" in workflow["3"]["inputs"]["text"]
     assert workflow["7"]["class_type"] == "ImageScale"
     assert workflow["6"]["inputs"]["width"] == 384
     assert workflow["6"]["inputs"]["height"] == 512

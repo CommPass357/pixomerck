@@ -36,7 +36,7 @@ const els = {
 
 const LEGACY_NEGATIVE_PROMPT = "blurred face, distorted hands, low quality, extra fingers";
 const DEFAULT_NEGATIVE_PROMPT =
-    "blurred face, distorted hands, warped fingers, melted held objects, gray silhouette, fake text, gibberish text, misspelled words, distorted signage, brand logos, watermark, extra people, background faces, portraits of people, low quality, extra fingers";
+    "blurred face, distorted hands, warped fingers, melted held objects, gray silhouette, fake text, gibberish text, misspelled words, distorted signage, brand logos, watermark, extra people, background faces, portraits of people, television screens, monitors, framed pictures, wall art, display panels, wall mounted displays, black rectangles, framed artwork, low quality, extra fingers";
 
 const PROMPT_PRESETS = [
     {
@@ -717,7 +717,7 @@ function currentEditTarget() {
 
 function currentStrength(editTarget) {
     const value = Number.parseFloat(els.strength.value) || 0.48;
-    if (editTarget === "background") return Math.max(value, 0.72).toFixed(2);
+    if (editTarget === "background") return Math.max(value, 0.82).toFixed(2);
     if (editTarget === "scene") return Math.max(value, 0.62).toFixed(2);
     return value.toFixed(2);
 }
