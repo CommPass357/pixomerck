@@ -21,7 +21,7 @@ class DemoBackend:
         return HealthView(ok=True, backend_ready=True, gpu="demo", message="Demo backend ready")
 
     async def generate(self, request: GenerationInput) -> Path:
-        image = Image.open(request.image_path).convert("RGB")
+        image = ImageOps.exif_transpose(Image.open(request.image_path)).convert("RGB")
         mask = Image.open(request.mask_path).convert("L").resize(image.size)
         image.thumbnail((request.size, request.size), Image.Resampling.LANCZOS)
         mask = mask.resize(image.size, Image.Resampling.LANCZOS)

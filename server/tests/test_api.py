@@ -11,6 +11,7 @@ from PIL import Image
 from pixomerck.app import create_app
 from pixomerck.comfyui import _default_inpaint_workflow
 from pixomerck.config import Settings
+from pixomerck.masking import prepare_inpaint_pair
 from pixomerck.models import GenerationInput, HealthView
 
 
@@ -213,6 +214,24 @@ def test_rejects_invalid_size(tmp_path: Path) -> None:
         )
 
     assert response.status_code == 400
+
+
+def test_prepare_inpaint_pair_pads_image_and_mask_to_square(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.png"
+    mask_path = tmp_path / "mask.png"
+    output_image_path = tmp_path / "prepared-source.png"
+    output_mask_path = tmp_path / "prepared-mask.png"
+
+    Image.new("RGB", (40, 80), (40, 80, 120)).save(source_path)
+    Image.new("L", (40, 80), 255).save(mask_path)
+
+    prepare_inpaint_pair(source_path, mask_path, output_image_path, output_mask_path, 64)
+
+    with Image.open(output_image_path) as prepared_image:
+        assert prepared_image.size == (64, 64)
+    with Image.open(output_mask_path) as prepared_mask:
+        assert prepared_mask.size == (64, 64)
+        assert prepared_mask.getbbox() == (16, 0, 48, 64)
 
 
 def test_comfyui_workflow_converts_mask_image_to_mask() -> None:

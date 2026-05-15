@@ -135,7 +135,7 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
         prompt: str = Form(...),
         negative_prompt: str = Form(""),
         seed: int | None = Form(None),
-        strength: float = Form(0.62),
+        strength: float = Form(0.48),
         size: int = Form(512),
     ) -> JobView:
         try:

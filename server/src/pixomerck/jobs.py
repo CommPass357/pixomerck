@@ -11,6 +11,7 @@ from PIL import Image
 
 from .backend import GenerationBackend
 from .config import Settings
+from .masking import create_person_mask, prepare_inpaint_pair
 from .models import GenerationInput, JobState, JobView
 
 
@@ -74,12 +75,24 @@ class JobManager:
         job_id = uuid.uuid4().hex
         job_dir = self.settings.inputs_dir / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
+        original_image_path = job_dir / "source-original.png"
+        uploaded_mask_path = job_dir / "client-mask.png"
+        raw_mask_path = job_dir / "person-mask-raw.png"
         image_path = job_dir / "source.png"
         mask_path = job_dir / "person_mask.png"
         output_path = self.settings.outputs_dir / f"{job_id}.png"
 
-        await _save_upload(image, image_path)
-        await _save_upload(person_mask, mask_path)
+        await _save_upload(image, original_image_path)
+        await _save_upload(person_mask, uploaded_mask_path)
+        _validate_image(original_image_path, "image")
+        _validate_image(uploaded_mask_path, "person_mask")
+        create_person_mask(
+            original_image_path,
+            uploaded_mask_path,
+            raw_mask_path,
+            required=self.settings.backend != "demo",
+        )
+        prepare_inpaint_pair(original_image_path, raw_mask_path, image_path, mask_path, size)
         _validate_image(image_path, "image")
         _validate_image(mask_path, "person_mask")
 

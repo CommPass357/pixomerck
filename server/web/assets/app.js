@@ -557,7 +557,7 @@ async function setSourceBlob(blob) {
     sourceBlob = blob;
     const bitmap = await decodeImage(blob);
     drawContain(els.sourceCanvas, bitmap);
-    drawFallbackPersonMask(els.maskCanvas, bitmap.width, bitmap.height);
+    drawClientMaskPlaceholder(els.maskCanvas, bitmap.width, bitmap.height);
     maskBlob = await canvasToBlob(els.maskCanvas, "image/png");
     els.resultImage.removeAttribute("src");
     setStatus(els.prompt.value.trim().length >= 8 ? "Photo ready. Generate next." : "Photo ready. Add prompt.");
@@ -579,28 +579,13 @@ function drawContain(canvas, bitmap) {
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 }
 
-function drawFallbackPersonMask(canvas, sourceWidth, sourceHeight) {
+function drawClientMaskPlaceholder(canvas, sourceWidth, sourceHeight) {
     const max = 1024;
     const scale = Math.min(max / sourceWidth, max / sourceHeight, 1);
     canvas.width = Math.max(1, Math.round(sourceWidth * scale));
     canvas.height = Math.max(1, Math.round(sourceHeight * scale));
-
-    const width = canvas.width;
-    const height = canvas.height;
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
-
-    ctx.beginPath();
-    ctx.ellipse(width * 0.5, height * 0.25, width * 0.16, height * 0.15, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(width * 0.22, height * 0.96);
-    ctx.bezierCurveTo(width * 0.25, height * 0.52, width * 0.38, height * 0.38, width * 0.5, height * 0.38);
-    ctx.bezierCurveTo(width * 0.62, height * 0.38, width * 0.75, height * 0.52, width * 0.78, height * 0.96);
-    ctx.closePath();
-    ctx.fill();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function clearCanvas(canvas) {
