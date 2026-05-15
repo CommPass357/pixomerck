@@ -129,7 +129,7 @@ def _hash_games_password(password: str) -> str:
     digest = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
-        bytes.fromhex(salt),
+        salt.encode("utf-8"),
         GAMES_PBKDF2_ITERATIONS,
         32,
     ).hex()
@@ -142,7 +142,7 @@ def _verify_games_password(password: str, stored: str) -> bool:
         actual = hashlib.pbkdf2_hmac(
             "sha256",
             password.encode("utf-8"),
-            bytes.fromhex(salt),
+            salt.encode("utf-8"),
             int(iterations_text),
             32,
         )

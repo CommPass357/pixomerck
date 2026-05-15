@@ -112,6 +112,39 @@ def test_web_login_accepts_existing_bored_games_account(tmp_path: Path) -> None:
         assert bad_login.status_code == 401
 
 
+def test_web_login_verifies_bored_games_salt_format(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.bored_games_db_path.write_text(
+        json.dumps(
+            {
+                "users": [
+                    {
+                        "uid": "games-user-1",
+                        "emailHash": "email-hash",
+                        "normalizedEmail": "games-user@example.com",
+                        "displayName": "Games User",
+                        "passwordHash": (
+                            "210000:00112233445566778899aabbccddeeff:"
+                            "f9a7a1720e465309fc201c60655615b6bac784878982b9e8764b60e815d57b2c"
+                        ),
+                        "createdAt": "2026-05-15T00:00:00.000Z",
+                    }
+                ],
+                "games": [],
+                "stats": {},
+                "bugReports": [],
+                "challenges": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    app = create_app(settings, FakeBackend())
+
+    with TestClient(app, base_url="https://testserver") as client:
+        login = client.post("/v1/session", json={"email": "games-user@example.com", "password": "password123"})
+        assert login.status_code == 200
+
+
 def test_invite_key_session_still_supports_script_login(tmp_path: Path) -> None:
     app = create_app(_settings(tmp_path), FakeBackend())
 
