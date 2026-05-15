@@ -58,6 +58,8 @@ class ComfyUiBackend(GenerationBackend):
         image_name: str,
         mask_name: str,
     ) -> str:
+        with Image.open(request.image_path) as image:
+            width, height = image.size
         workflow = _default_inpaint_workflow(
             model=self.settings.default_model,
             image_name=image_name,
@@ -66,7 +68,8 @@ class ComfyUiBackend(GenerationBackend):
             negative_prompt=request.negative_prompt,
             seed=request.seed if request.seed is not None else int(uuid.uuid4().int % 2_000_000_000),
             strength=request.strength,
-            size=request.size,
+            width=width,
+            height=height,
         )
         response = await client.post(
             f"{self.settings.comfyui_url}/prompt",
@@ -116,7 +119,8 @@ def _default_inpaint_workflow(
     negative_prompt: str,
     seed: int,
     strength: float,
-    size: int,
+    width: int,
+    height: int,
 ) -> dict:
     positive = (
         f"{prompt}, preserve the same person, realistic photo, detailed face, natural skin texture"
@@ -146,8 +150,8 @@ def _default_inpaint_workflow(
             "class_type": "ImageScale",
             "inputs": {
                 "image": ["4", 0],
-                "width": size,
-                "height": size,
+                "width": width,
+                "height": height,
                 "upscale_method": "lanczos",
                 "crop": "center",
             },
@@ -156,8 +160,8 @@ def _default_inpaint_workflow(
             "class_type": "ImageScale",
             "inputs": {
                 "image": ["5", 0],
-                "width": size,
-                "height": size,
+                "width": width,
+                "height": height,
                 "upscale_method": "nearest-exact",
                 "crop": "center",
             },

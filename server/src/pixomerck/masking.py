@@ -38,19 +38,15 @@ def prepare_inpaint_pair(
 ) -> None:
     image = ImageOps.exif_transpose(Image.open(source_path)).convert("RGB")
     mask = Image.open(mask_path).convert("L").resize(image.size, Image.Resampling.LANCZOS)
-
-    canvas = _blurred_square_background(image, size)
-    mask_canvas = Image.new("L", (size, size), 0)
-    contained_image, contained_mask, offset = _contain_pair(image, mask, size)
-
-    canvas.paste(contained_image, offset)
-    mask_canvas.paste(contained_mask, offset)
-    mask_canvas = _edit_mask_for_target(canvas, mask_canvas, edit_target)
+    target_size = _target_dimensions(image.size, size)
+    output_image = image.resize(target_size, Image.Resampling.LANCZOS)
+    output_mask = mask.resize(target_size, Image.Resampling.LANCZOS)
+    output_mask = _edit_mask_for_target(output_image, output_mask, edit_target)
 
     output_image_path.parent.mkdir(parents=True, exist_ok=True)
     output_mask_path.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(output_image_path)
-    mask_canvas.save(output_mask_path)
+    output_image.save(output_image_path)
+    output_mask.save(output_mask_path)
 
 
 def _edit_mask_for_target(image: Image.Image, person_mask: Image.Image, edit_target: str) -> Image.Image:
@@ -121,25 +117,17 @@ def _validate_mask(mask: Image.Image) -> None:
         raise ValueError("The person mask covered almost the entire image.")
 
 
-def _blurred_square_background(image: Image.Image, size: int) -> Image.Image:
-    width, height = image.size
-    scale = max(size / width, size / height)
-    cover_size = (max(size, round(width * scale)), max(size, round(height * scale)))
-    cover = image.resize(cover_size, Image.Resampling.LANCZOS)
-    left = max(0, (cover.width - size) // 2)
-    top = max(0, (cover.height - size) // 2)
-    cover = cover.crop((left, top, left + size, top + size))
-    return cover.filter(ImageFilter.GaussianBlur(radius=max(12, size // 18)))
+def _target_dimensions(source_size: tuple[int, int], long_edge: int) -> tuple[int, int]:
+    width, height = source_size
+    scale = long_edge / max(width, height)
+    return (
+        _round_to_multiple(width * scale, 8),
+        _round_to_multiple(height * scale, 8),
+    )
 
 
-def _contain_pair(image: Image.Image, mask: Image.Image, size: int) -> tuple[Image.Image, Image.Image, tuple[int, int]]:
-    width, height = image.size
-    scale = min(size / width, size / height)
-    contained_size = (max(1, round(width * scale)), max(1, round(height * scale)))
-    contained_image = image.resize(contained_size, Image.Resampling.LANCZOS)
-    contained_mask = mask.resize(contained_size, Image.Resampling.LANCZOS)
-    offset = ((size - contained_size[0]) // 2, (size - contained_size[1]) // 2)
-    return contained_image, contained_mask, offset
+def _round_to_multiple(value: float, multiple: int) -> int:
+    return max(multiple, round(value / multiple) * multiple)
 
 
 def _protect_identity_region(mask: Image.Image) -> Image.Image:

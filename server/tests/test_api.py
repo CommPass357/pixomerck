@@ -216,7 +216,7 @@ def test_rejects_invalid_size(tmp_path: Path) -> None:
     assert response.status_code == 400
 
 
-def test_prepare_inpaint_pair_pads_image_and_mask_to_square(tmp_path: Path) -> None:
+def test_prepare_inpaint_pair_preserves_aspect_ratio(tmp_path: Path) -> None:
     source_path = tmp_path / "source.png"
     mask_path = tmp_path / "mask.png"
     output_image_path = tmp_path / "prepared-source.png"
@@ -228,12 +228,11 @@ def test_prepare_inpaint_pair_pads_image_and_mask_to_square(tmp_path: Path) -> N
     prepare_inpaint_pair(source_path, mask_path, output_image_path, output_mask_path, 64)
 
     with Image.open(output_image_path) as prepared_image:
-        assert prepared_image.size == (64, 64)
+        assert prepared_image.size == (32, 64)
     with Image.open(output_mask_path) as prepared_mask:
-        assert prepared_mask.size == (64, 64)
-        assert prepared_mask.getbbox() == (16, 0, 48, 64)
-        assert prepared_mask.getpixel((32, 4)) < 16
-        assert prepared_mask.getpixel((32, 30)) > 240
+        assert prepared_mask.size == (32, 64)
+        assert prepared_mask.getpixel((16, 4)) < 16
+        assert prepared_mask.getpixel((16, 30)) > 240
 
 
 def test_prepare_inpaint_pair_protects_hands_and_held_object_band(tmp_path: Path) -> None:
@@ -307,10 +306,15 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
         negative_prompt="low quality",
         seed=123,
         strength=0.62,
-        size=512,
+        width=384,
+        height=512,
     )
 
     assert workflow["7"]["class_type"] == "ImageScale"
+    assert workflow["6"]["inputs"]["width"] == 384
+    assert workflow["6"]["inputs"]["height"] == 512
+    assert workflow["7"]["inputs"]["width"] == 384
+    assert workflow["7"]["inputs"]["height"] == 512
     assert workflow["8"]["class_type"] == "ImageToMask"
     assert workflow["8"]["inputs"]["image"] == ["7", 0]
     assert workflow["9"]["class_type"] == "InpaintModelConditioning"
