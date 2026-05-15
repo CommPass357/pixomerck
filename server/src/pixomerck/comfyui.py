@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 import httpx
+from PIL import Image, ImageFilter, ImageStat
 
 from .backend import GenerationBackend
 from .config import Settings
@@ -39,6 +40,7 @@ class ComfyUiBackend(GenerationBackend):
             prompt_id = await self._queue_prompt(client, request, image_name, mask_name)
             filename = await self._wait_for_output(client, prompt_id)
             await self._download_output(client, filename, request.output_path)
+            _repair_flat_masked_region(request.image_path, request.mask_path, request.output_path)
         return request.output_path
 
     async def _upload(self, client: httpx.AsyncClient, path: Path) -> str:
@@ -168,24 +170,26 @@ def _default_inpaint_workflow(
             },
         },
         "9": {
-            "class_type": "VAEEncodeForInpaint",
+            "class_type": "InpaintModelConditioning",
             "inputs": {
+                "positive": ["2", 0],
+                "negative": ["3", 0],
                 "pixels": ["6", 0],
                 "vae": ["1", 2],
                 "mask": ["8", 0],
-                "grow_mask_by": 8,
+                "noise_mask": True,
             },
         },
         "10": {
             "class_type": "KSampler",
             "inputs": {
                 "model": ["1", 0],
-                "positive": ["2", 0],
-                "negative": ["3", 0],
-                "latent_image": ["9", 0],
+                "positive": ["9", 0],
+                "negative": ["9", 1],
+                "latent_image": ["9", 2],
                 "seed": seed,
-                "steps": 24,
-                "cfg": 7.0,
+                "steps": 28,
+                "cfg": 6.5,
                 "sampler_name": "dpmpp_2m",
                 "scheduler": "karras",
                 "denoise": strength,
@@ -201,3 +205,22 @@ def _default_inpaint_workflow(
         },
     }
     return json.loads(json.dumps(workflow_json))
+
+
+def _repair_flat_masked_region(source_path: Path, mask_path: Path, output_path: Path) -> None:
+    result = Image.open(output_path).convert("RGB")
+    source = Image.open(source_path).convert("RGB").resize(result.size, Image.Resampling.LANCZOS)
+    mask = Image.open(mask_path).convert("L").resize(result.size, Image.Resampling.LANCZOS)
+    solid_mask = mask.point(lambda value: 255 if value >= 192 else 0)
+    if solid_mask.getbbox() is None:
+        return
+
+    stats = ImageStat.Stat(result, solid_mask)
+    average_stddev = sum(stats.stddev) / len(stats.stddev)
+    average_color = sum(stats.mean) / len(stats.mean)
+    if average_stddev > 7.5 or average_color < 55 or average_color > 220:
+        return
+
+    feathered_mask = mask.filter(ImageFilter.GaussianBlur(radius=1.4))
+    repaired = Image.composite(source, result, feathered_mask)
+    repaired.save(output_path)

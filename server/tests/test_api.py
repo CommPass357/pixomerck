@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from pixomerck.app import create_app
-from pixomerck.comfyui import _default_inpaint_workflow
+from pixomerck.comfyui import _default_inpaint_workflow, _repair_flat_masked_region
 from pixomerck.config import Settings
 from pixomerck.masking import prepare_inpaint_pair
 from pixomerck.models import GenerationInput, HealthView
@@ -232,6 +232,28 @@ def test_prepare_inpaint_pair_pads_image_and_mask_to_square(tmp_path: Path) -> N
     with Image.open(output_mask_path) as prepared_mask:
         assert prepared_mask.size == (64, 64)
         assert prepared_mask.getbbox() == (16, 0, 48, 64)
+        assert prepared_mask.getpixel((32, 4)) < 16
+        assert prepared_mask.getpixel((32, 30)) > 240
+
+
+def test_repair_flat_masked_region_restores_source_when_output_is_gray(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.png"
+    mask_path = tmp_path / "mask.png"
+    output_path = tmp_path / "output.png"
+
+    source = Image.new("RGB", (64, 64), (20, 40, 80))
+    source.paste((220, 170, 110), (24, 12, 40, 52))
+    source.save(source_path)
+    Image.new("L", (64, 64), 0).save(mask_path)
+    mask = Image.open(mask_path).convert("L")
+    mask.paste(255, (24, 12, 40, 52))
+    mask.save(mask_path)
+    Image.new("RGB", (64, 64), (130, 130, 130)).save(output_path)
+
+    _repair_flat_masked_region(source_path, mask_path, output_path)
+
+    with Image.open(output_path).convert("RGB") as repaired:
+        assert repaired.getpixel((32, 24)) == (220, 170, 110)
 
 
 def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
@@ -249,9 +271,13 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
     assert workflow["7"]["class_type"] == "ImageScale"
     assert workflow["8"]["class_type"] == "ImageToMask"
     assert workflow["8"]["inputs"]["image"] == ["7", 0]
-    assert workflow["9"]["class_type"] == "VAEEncodeForInpaint"
+    assert workflow["9"]["class_type"] == "InpaintModelConditioning"
+    assert workflow["9"]["inputs"]["positive"] == ["2", 0]
+    assert workflow["9"]["inputs"]["negative"] == ["3", 0]
     assert workflow["9"]["inputs"]["mask"] == ["8", 0]
-    assert workflow["10"]["inputs"]["latent_image"] == ["9", 0]
+    assert workflow["10"]["inputs"]["positive"] == ["9", 0]
+    assert workflow["10"]["inputs"]["negative"] == ["9", 1]
+    assert workflow["10"]["inputs"]["latent_image"] == ["9", 2]
 
 
 def _settings(tmp_path: Path) -> Settings:

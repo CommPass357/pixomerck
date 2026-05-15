@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 import shutil
 
-from PIL import Image, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 
 MAX_SEGMENTATION_SIDE = 1536
@@ -38,6 +38,7 @@ def prepare_inpaint_pair(source_path: Path, mask_path: Path, output_image_path: 
 
     canvas.paste(contained_image, offset)
     mask_canvas.paste(contained_mask, offset)
+    mask_canvas = _protect_identity_region(mask_canvas)
 
     output_image_path.parent.mkdir(parents=True, exist_ok=True)
     output_mask_path.parent.mkdir(parents=True, exist_ok=True)
@@ -120,3 +121,27 @@ def _contain_pair(image: Image.Image, mask: Image.Image, size: int) -> tuple[Ima
     contained_mask = mask.resize(contained_size, Image.Resampling.LANCZOS)
     offset = ((size - contained_size[0]) // 2, (size - contained_size[1]) // 2)
     return contained_image, contained_mask, offset
+
+
+def _protect_identity_region(mask: Image.Image) -> Image.Image:
+    protected = mask.copy()
+    bbox = protected.point(lambda value: 255 if value > 32 else 0).getbbox()
+    if bbox is None:
+        return protected
+
+    left, top, right, bottom = bbox
+    person_height = bottom - top
+    fade_start = top + round(person_height * 0.22)
+    protect_bottom = top + round(person_height * 0.38)
+    if protect_bottom <= top:
+        return protected
+
+    identity_mask = Image.new("L", protected.size, 0)
+    draw = ImageDraw.Draw(identity_mask)
+    draw.rectangle((left, top, right, fade_start), fill=255)
+    fade_height = max(1, protect_bottom - fade_start)
+    for y in range(fade_start, protect_bottom):
+        alpha = round(255 * (1 - ((y - fade_start) / fade_height)))
+        draw.line((left, y, right, y), fill=alpha)
+    identity_mask = identity_mask.filter(ImageFilter.GaussianBlur(radius=max(2.0, protected.width / 128)))
+    return Image.composite(Image.new("L", protected.size, 0), protected, identity_mask)
