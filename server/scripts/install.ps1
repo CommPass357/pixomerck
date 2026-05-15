@@ -6,7 +6,8 @@ param(
     [switch]$DownloadComfyUI,
     [string]$ComfyUiDir = (Join-Path $InstallDir "vendor\ComfyUI"),
     [string]$ModelUrl = "",
-    [string]$ModelName = "v1-5-pruned-emaonly.safetensors",
+    [string]$ModelName = "sd-v1-5-inpainting.safetensors",
+    [string]$PythonVersion = "3.12",
     [string]$PublicHostname = "pix.hoesonly.fans",
     [string]$TunnelUrl = "https://pix.hoesonly.fans",
     [int]$Port = 8765
@@ -20,15 +21,28 @@ function New-InviteKey {
     return [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+", "-").Replace("/", "_")
 }
 
+function Invoke-Native {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+        [string[]]$Arguments = @()
+    )
+
+    & $FilePath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$FilePath failed with exit code $LASTEXITCODE."
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $InstallDir, $DataDir, (Join-Path $InstallDir "runtime") | Out-Null
 
 $venvPython = Join-Path $InstallDir ".venv\Scripts\python.exe"
 if (-not (Test-Path $venvPython)) {
-    py -3 -m venv (Join-Path $InstallDir ".venv")
+    Invoke-Native "py" @("-$PythonVersion", "-m", "venv", (Join-Path $InstallDir ".venv"))
 }
 
-& $venvPython -m pip install --upgrade pip
-& $venvPython -m pip install -r (Join-Path $InstallDir "requirements.txt")
+Invoke-Native $venvPython @("-m", "pip", "install", "--upgrade", "pip")
+Invoke-Native $venvPython @("-m", "pip", "install", "-r", (Join-Path $InstallDir "requirements.txt"))
 
 $invitePath = Join-Path $DataDir "invite-key.txt"
 if (-not (Test-Path $invitePath)) {
@@ -37,15 +51,15 @@ if (-not (Test-Path $invitePath)) {
 
 if ($DownloadComfyUI) {
     if (-not (Test-Path $ComfyUiDir)) {
-        git clone https://github.com/comfyanonymous/ComfyUI.git $ComfyUiDir
+        Invoke-Native "git" @("clone", "https://github.com/comfyanonymous/ComfyUI.git", $ComfyUiDir)
     }
     $comfyPython = Join-Path $ComfyUiDir ".venv\Scripts\python.exe"
     if (-not (Test-Path $comfyPython)) {
-        py -3 -m venv (Join-Path $ComfyUiDir ".venv")
+        Invoke-Native "py" @("-$PythonVersion", "-m", "venv", (Join-Path $ComfyUiDir ".venv"))
     }
-    & $comfyPython -m pip install --upgrade pip
-    & $comfyPython -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-    & $comfyPython -m pip install -r (Join-Path $ComfyUiDir "requirements.txt")
+    Invoke-Native $comfyPython @("-m", "pip", "install", "--upgrade", "pip")
+    Invoke-Native $comfyPython @("-m", "pip", "install", "torch", "torchvision", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cu121")
+    Invoke-Native $comfyPython @("-m", "pip", "install", "-r", (Join-Path $ComfyUiDir "requirements.txt"))
 
     if ($ModelUrl) {
         $modelDir = Join-Path $ComfyUiDir "models\checkpoints"

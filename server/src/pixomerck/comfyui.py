@@ -161,21 +161,28 @@ def _default_inpaint_workflow(
             },
         },
         "8": {
+            "class_type": "ImageToMask",
+            "inputs": {
+                "image": ["7", 0],
+                "channel": "red",
+            },
+        },
+        "9": {
             "class_type": "VAEEncodeForInpaint",
             "inputs": {
                 "pixels": ["6", 0],
                 "vae": ["1", 2],
-                "mask": ["7", 1],
+                "mask": ["8", 0],
                 "grow_mask_by": 8,
             },
         },
-        "9": {
+        "10": {
             "class_type": "KSampler",
             "inputs": {
                 "model": ["1", 0],
                 "positive": ["2", 0],
                 "negative": ["3", 0],
-                "latent_image": ["8", 0],
+                "latent_image": ["9", 0],
                 "seed": seed,
                 "steps": 24,
                 "cfg": 7.0,
@@ -184,13 +191,13 @@ def _default_inpaint_workflow(
                 "denoise": strength,
             },
         },
-        "10": {
-            "class_type": "VAEDecode",
-            "inputs": {"samples": ["9", 0], "vae": ["1", 2]},
-        },
         "11": {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": ["10", 0], "vae": ["1", 2]},
+        },
+        "12": {
             "class_type": "SaveImage",
-            "inputs": {"images": ["10", 0], "filename_prefix": "pixomerck"},
+            "inputs": {"images": ["11", 0], "filename_prefix": "pixomerck"},
         },
     }
     return json.loads(json.dumps(workflow_json))

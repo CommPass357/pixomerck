@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from pixomerck.app import create_app
+from pixomerck.comfyui import _default_inpaint_workflow
 from pixomerck.config import Settings
 from pixomerck.models import GenerationInput, HealthView
 
@@ -157,6 +158,26 @@ def test_rejects_invalid_size(tmp_path: Path) -> None:
         )
 
     assert response.status_code == 400
+
+
+def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
+    workflow = _default_inpaint_workflow(
+        model="sd-v1-5-inpainting.safetensors",
+        image_name="source.png",
+        mask_name="person_mask.png",
+        prompt="make a realistic edit",
+        negative_prompt="low quality",
+        seed=123,
+        strength=0.62,
+        size=512,
+    )
+
+    assert workflow["7"]["class_type"] == "ImageScale"
+    assert workflow["8"]["class_type"] == "ImageToMask"
+    assert workflow["8"]["inputs"]["image"] == ["7", 0]
+    assert workflow["9"]["class_type"] == "VAEEncodeForInpaint"
+    assert workflow["9"]["inputs"]["mask"] == ["8", 0]
+    assert workflow["10"]["inputs"]["latent_image"] == ["9", 0]
 
 
 def _settings(tmp_path: Path) -> Settings:
