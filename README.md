@@ -13,7 +13,8 @@ https://pix.hoesonly.fans
 ## What It Includes
 
 - Browser web app served from the FastAPI process at `/`
-- Open email/password registration backed by a secure browser session cookie
+- Email/password login backed by the shared Bored Games account database and a
+  secure Pixomerck browser session cookie
 - FastAPI job API with a one-at-a-time generation queue
 - ComfyUI adapter for server-side image generation
 - Demo backend for UI testing without ComfyUI
@@ -43,12 +44,16 @@ pix.hoesonly.fans -> http://127.0.0.1:8765
 
 ## Login
 
-Open the web app and create an account with an email address and password. User
-accounts are stored locally in:
+Open the web app and log in with the same email and password used on
+`games.hoesonly.fans`. Creating an account in Pixomerck writes to the shared
+Bored Games account database:
 
 ```text
-server\data\users.json
+D:\boredgames\server\data\db.json
 ```
+
+Override the path with `PIXOMERCK_GAMES_DB_PATH` if the Bored Games server data
+folder moves.
 
 Scripted API clients can still use the server API key in:
 

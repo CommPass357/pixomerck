@@ -54,12 +54,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-cloudflare.ps1
 
 ## Browser Login
 
-Open the web app and create an account with an email address and password. Open
-registration is enabled, and accounts are stored locally in:
+Open the web app and log in with the same email and password used on
+`games.hoesonly.fans`. Open registration is enabled, and accounts are stored in
+the shared Bored Games database:
 
 ```text
-data\users.json
+D:\boredgames\server\data\db.json
 ```
+
+Set `PIXOMERCK_GAMES_DB_PATH` when that database lives somewhere else.
 
 The browser exchanges valid credentials for a secure session cookie.
 
@@ -71,6 +74,7 @@ Configuration lives in `runtime\pixomerck.env.ps1`:
 - `PIXOMERCK_BACKEND`: `comfyui` or `demo`
 - `PIXOMERCK_COMFYUI_URL`: default `http://127.0.0.1:8188`
 - `PIXOMERCK_MODEL`: ComfyUI checkpoint filename
+- `PIXOMERCK_GAMES_DB_PATH`: shared Bored Games JSON database path
 - `PIXOMERCK_TUNNEL_URL`: optional public tunnel URL
 - `PIXOMERCK_PUBLIC_HOSTNAME`: browser/public hostname, default `pix.hoesonly.fans`
 

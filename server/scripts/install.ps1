@@ -8,6 +8,7 @@ param(
     [string]$ModelUrl = "",
     [string]$ModelName = "sd-v1-5-inpainting.safetensors",
     [string]$PythonVersion = "3.12",
+    [string]$BoredGamesDbPath = (Join-Path (Resolve-Path (Join-Path $InstallDir "..\..")).Path "server\data\db.json"),
     [string]$PublicHostname = "pix.hoesonly.fans",
     [string]$TunnelUrl = "https://pix.hoesonly.fans",
     [int]$Port = 8765
@@ -73,6 +74,7 @@ $envFile = Join-Path $InstallDir "runtime\pixomerck.env.ps1"
 `$env:PIXOMERCK_HOST = "0.0.0.0"
 `$env:PIXOMERCK_PORT = "$Port"
 `$env:PIXOMERCK_DATA_DIR = "$DataDir"
+`$env:PIXOMERCK_GAMES_DB_PATH = "$BoredGamesDbPath"
 `$env:PIXOMERCK_BACKEND = "$Backend"
 `$env:PIXOMERCK_COMFYUI_URL = "http://127.0.0.1:8188"
 `$env:PIXOMERCK_MODEL = "$ModelName"

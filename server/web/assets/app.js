@@ -196,7 +196,7 @@ function setAuthenticated(value) {
     els.authSplash.hidden = authenticated;
     els.appShell.hidden = !authenticated;
     if (!authenticated) {
-        setAuthStatus("Create an account or log in to continue.");
+        setAuthStatus("Use the same email and password as games.hoesonly.fans.");
     }
     refreshGenerateState();
 }

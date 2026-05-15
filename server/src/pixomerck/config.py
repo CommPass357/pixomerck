@@ -11,6 +11,7 @@ class Settings:
     host: str = "0.0.0.0"
     port: int = 8765
     data_dir: Path = Path("data")
+    bored_games_db_path: Path = Path("D:/boredgames/server/data/db.json")
     invite_key: str = ""
     backend: str = "comfyui"
     comfyui_url: str = "http://127.0.0.1:8188"
@@ -33,10 +34,12 @@ class Settings:
 
 def load_settings() -> Settings:
     data_dir = Path(os.getenv("PIXOMERCK_DATA_DIR", "data")).resolve()
+    games_db_path = Path(os.getenv("PIXOMERCK_GAMES_DB_PATH", str(_default_games_db_path()))).resolve()
     settings = Settings(
         host=os.getenv("PIXOMERCK_HOST", "0.0.0.0"),
         port=int(os.getenv("PIXOMERCK_PORT", "8765")),
         data_dir=data_dir,
+        bored_games_db_path=games_db_path,
         invite_key=os.getenv("PIXOMERCK_INVITE_KEY", ""),
         backend=os.getenv("PIXOMERCK_BACKEND", "comfyui").lower(),
         comfyui_url=os.getenv("PIXOMERCK_COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/"),
@@ -46,6 +49,11 @@ def load_settings() -> Settings:
     )
     ensure_runtime(settings)
     return settings
+
+
+def _default_games_db_path() -> Path:
+    boredgames_root = Path(__file__).resolve().parents[4]
+    return boredgames_root / "server" / "data" / "db.json"
 
 
 def ensure_runtime(settings: Settings) -> None:

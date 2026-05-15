@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from io import BytesIO
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -88,6 +89,27 @@ def test_web_account_create_and_login_cookie_authenticates_session(tmp_path: Pat
 
         pairing = client.get("/v1/pairing")
         assert pairing.status_code == 200
+
+    games_db = json.loads((tmp_path / "games-db.json").read_text(encoding="utf-8"))
+    emails = {user["normalizedEmail"] for user in games_db["users"]}
+    assert emails == {"user@example.com", "second@example.com"}
+    assert not (tmp_path / "users.json").exists()
+
+
+def test_web_login_accepts_existing_bored_games_account(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    app = create_app(settings, FakeBackend())
+
+    with TestClient(app, base_url="https://testserver") as client:
+        create = client.post("/v1/accounts", json={"email": "games@example.com", "password": "password123"})
+        assert create.status_code == 200
+        client.delete("/v1/session")
+
+        login = client.post("/v1/session", json={"email": "games@example.com", "password": "password123"})
+        assert login.status_code == 200
+
+        bad_login = client.post("/v1/session", json={"email": "games@example.com", "password": "wrong-password"})
+        assert bad_login.status_code == 401
 
 
 def test_invite_key_session_still_supports_script_login(tmp_path: Path) -> None:
@@ -181,7 +203,12 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
 
 
 def _settings(tmp_path: Path) -> Settings:
-    return Settings(data_dir=tmp_path, invite_key="test-key", backend="demo")
+    return Settings(
+        data_dir=tmp_path / "pixomerck-data",
+        bored_games_db_path=tmp_path / "games-db.json",
+        invite_key="test-key",
+        backend="demo",
+    )
 
 
 def _png_bytes(color: tuple[int, int, int]) -> BytesIO:
