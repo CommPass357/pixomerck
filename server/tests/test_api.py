@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from pixomerck.app import create_app
-from pixomerck.comfyui import _default_inpaint_workflow, _repair_flat_masked_region
+from pixomerck.comfyui import _default_inpaint_workflow, _repair_flat_masked_region, _restore_protected_source_regions
 from pixomerck.config import Settings
 from pixomerck.masking import prepare_inpaint_pair
 from pixomerck.models import GenerationInput, HealthView
@@ -295,6 +295,26 @@ def test_repair_flat_masked_region_restores_source_when_output_is_gray(tmp_path:
 
     with Image.open(output_path).convert("RGB") as repaired:
         assert repaired.getpixel((32, 24)) == (220, 170, 110)
+
+
+def test_restore_protected_source_regions_keeps_subject_after_background_edit(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.png"
+    mask_path = tmp_path / "mask.png"
+    output_path = tmp_path / "output.png"
+
+    source = Image.new("RGB", (64, 64), (20, 40, 80))
+    source.paste((220, 170, 110), (20, 12, 44, 56))
+    source.save(source_path)
+    mask = Image.new("L", (64, 64), 255)
+    mask.paste(0, (20, 12, 44, 56))
+    mask.save(mask_path)
+    Image.new("RGB", (64, 64), (60, 180, 90)).save(output_path)
+
+    _restore_protected_source_regions(source_path, mask_path, output_path)
+
+    with Image.open(output_path).convert("RGB") as restored:
+        assert restored.getpixel((32, 32)) == (220, 170, 110)
+        assert restored.getpixel((8, 8)) == (60, 180, 90)
 
 
 def test_comfyui_workflow_converts_mask_image_to_mask() -> None:

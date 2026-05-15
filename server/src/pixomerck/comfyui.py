@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 import httpx
-from PIL import Image, ImageFilter, ImageStat
+from PIL import Image, ImageFilter, ImageOps, ImageStat
 
 from .backend import GenerationBackend
 from .config import Settings
@@ -41,6 +41,8 @@ class ComfyUiBackend(GenerationBackend):
             filename = await self._wait_for_output(client, prompt_id)
             await self._download_output(client, filename, request.output_path)
             _repair_flat_masked_region(request.image_path, request.mask_path, request.output_path)
+            if request.edit_target in {"background", "scene"}:
+                _restore_protected_source_regions(request.image_path, request.mask_path, request.output_path)
         return request.output_path
 
     async def _upload(self, client: httpx.AsyncClient, path: Path) -> str:
@@ -228,3 +230,17 @@ def _repair_flat_masked_region(source_path: Path, mask_path: Path, output_path: 
     feathered_mask = mask.filter(ImageFilter.GaussianBlur(radius=1.4))
     repaired = Image.composite(source, result, feathered_mask)
     repaired.save(output_path)
+
+
+def _restore_protected_source_regions(source_path: Path, mask_path: Path, output_path: Path) -> None:
+    result = Image.open(output_path).convert("RGB")
+    source = Image.open(source_path).convert("RGB").resize(result.size, Image.Resampling.LANCZOS)
+    edit_mask = Image.open(mask_path).convert("L").resize(result.size, Image.Resampling.LANCZOS)
+    protected_mask = ImageOps.invert(edit_mask)
+    if protected_mask.point(lambda value: 255 if value > 32 else 0).getbbox() is None:
+        return
+
+    protected_mask = protected_mask.filter(ImageFilter.MinFilter(size=3))
+    protected_mask = protected_mask.filter(ImageFilter.GaussianBlur(radius=0.9))
+    restored = Image.composite(source, result, protected_mask)
+    restored.save(output_path)
