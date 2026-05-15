@@ -25,6 +25,7 @@ class JobRecord:
     seed: int | None
     strength: float
     size: int
+    edit_target: str
     image_path: Path
     mask_path: Path
     output_path: Path
@@ -69,9 +70,11 @@ class JobManager:
         seed: int | None,
         strength: float,
         size: int,
+        edit_target: str,
     ) -> JobView:
         _validate_prompt(prompt)
         _validate_size(size)
+        edit_target = _validate_edit_target(edit_target)
         job_id = uuid.uuid4().hex
         job_dir = self.settings.inputs_dir / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
@@ -92,7 +95,7 @@ class JobManager:
             raw_mask_path,
             required=self.settings.backend != "demo",
         )
-        prepare_inpaint_pair(original_image_path, raw_mask_path, image_path, mask_path, size)
+        prepare_inpaint_pair(original_image_path, raw_mask_path, image_path, mask_path, size, edit_target)
         _validate_image(image_path, "image")
         _validate_image(mask_path, "person_mask")
 
@@ -105,6 +108,7 @@ class JobManager:
             seed=seed,
             strength=strength,
             size=size,
+            edit_target=edit_target,
             image_path=image_path,
             mask_path=mask_path,
             output_path=output_path,
@@ -141,6 +145,7 @@ class JobManager:
                         seed=record.seed,
                         strength=record.strength,
                         size=record.size,
+                        edit_target=record.edit_target,
                     )
                 )
                 record.status = JobState.completed
@@ -169,6 +174,13 @@ def _validate_prompt(prompt: str) -> None:
 def _validate_size(size: int) -> None:
     if size not in {512, 768}:
         raise ValueError("Size must be 512 or 768.")
+
+
+def _validate_edit_target(edit_target: str) -> str:
+    normalized = (edit_target or "subject").strip().lower()
+    if normalized not in {"subject", "background", "scene"}:
+        raise ValueError("Edit target must be subject, background, or scene.")
+    return normalized
 
 
 def _validate_image(path: Path, field: str) -> None:

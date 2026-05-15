@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 import shutil
 
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
 
 
 MAX_SEGMENTATION_SIDE = 1536
@@ -28,7 +28,14 @@ def create_person_mask(source_path: Path, uploaded_mask_path: Path, destination:
         raise ValueError(f"Could not create a person mask: {exc}") from exc
 
 
-def prepare_inpaint_pair(source_path: Path, mask_path: Path, output_image_path: Path, output_mask_path: Path, size: int) -> None:
+def prepare_inpaint_pair(
+    source_path: Path,
+    mask_path: Path,
+    output_image_path: Path,
+    output_mask_path: Path,
+    size: int,
+    edit_target: str = "subject",
+) -> None:
     image = ImageOps.exif_transpose(Image.open(source_path)).convert("RGB")
     mask = Image.open(mask_path).convert("L").resize(image.size, Image.Resampling.LANCZOS)
 
@@ -38,12 +45,24 @@ def prepare_inpaint_pair(source_path: Path, mask_path: Path, output_image_path: 
 
     canvas.paste(contained_image, offset)
     mask_canvas.paste(contained_mask, offset)
-    mask_canvas = _protect_identity_region(mask_canvas)
+    mask_canvas = _edit_mask_for_target(canvas, mask_canvas, edit_target)
 
     output_image_path.parent.mkdir(parents=True, exist_ok=True)
     output_mask_path.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(output_image_path)
     mask_canvas.save(output_mask_path)
+
+
+def _edit_mask_for_target(image: Image.Image, person_mask: Image.Image, edit_target: str) -> Image.Image:
+    target = (edit_target or "subject").strip().lower()
+    if target == "background":
+        return ImageOps.invert(person_mask)
+
+    subject_mask = _protect_identity_region(person_mask)
+    subject_mask = _protect_hands_and_held_objects(image, subject_mask)
+    if target == "scene":
+        return ImageChops.lighter(subject_mask, ImageOps.invert(person_mask))
+    return subject_mask
 
 
 def _create_rembg_mask(source_path: Path, destination: Path) -> None:
@@ -145,3 +164,70 @@ def _protect_identity_region(mask: Image.Image) -> Image.Image:
         draw.line((left, y, right, y), fill=alpha)
     identity_mask = identity_mask.filter(ImageFilter.GaussianBlur(radius=max(2.0, protected.width / 128)))
     return Image.composite(Image.new("L", protected.size, 0), protected, identity_mask)
+
+
+def _protect_hands_and_held_objects(image: Image.Image, mask: Image.Image) -> Image.Image:
+    bbox = mask.point(lambda value: 255 if value > 32 else 0).getbbox()
+    if bbox is None:
+        return mask
+
+    left, top, right, bottom = bbox
+    person_width = right - left
+    person_height = bottom - top
+    detect_top = top + round(person_height * 0.58)
+    detect_bottom = top + round(person_height * 0.88)
+    if detect_bottom <= detect_top:
+        return mask
+
+    skin_mask = Image.new("L", mask.size, 0)
+    hsv_image = image.convert("HSV")
+    rgb_image = image.convert("RGB")
+    image_pixels = hsv_image.load()
+    rgb_pixels = rgb_image.load()
+    mask_pixels = mask.load()
+    skin_pixels = skin_mask.load()
+
+    for y in range(max(0, detect_top), min(mask.height, detect_bottom)):
+        for x in range(max(0, left), min(mask.width, right)):
+            if mask_pixels[x, y] <= 64:
+                continue
+            hue, saturation, value = image_pixels[x, y]
+            red, green, blue = rgb_pixels[x, y]
+            if _is_skin_like(red, green, blue, hue, saturation, value):
+                skin_pixels[x, y] = 255
+
+    skin_mask = skin_mask.filter(ImageFilter.MaxFilter(size=9)).filter(ImageFilter.GaussianBlur(radius=2.2))
+    hand_bbox = skin_mask.point(lambda value: 255 if value > 80 else 0).getbbox()
+    if hand_bbox is None:
+        return mask
+
+    hand_left, hand_top, hand_right, hand_bottom = hand_bbox
+    expand_x = round(person_width * 0.08)
+    expand_bottom = round(person_height * 0.12)
+    hand_height = hand_bottom - hand_top
+    held_object_mask = Image.new("L", mask.size, 0)
+    draw = ImageDraw.Draw(held_object_mask)
+    if hand_right - hand_left > person_width * 0.35:
+        draw.rectangle(
+            (
+                max(left, hand_left - expand_x),
+                max(top, hand_top + round(hand_height * 0.35)),
+                min(right, hand_right + expand_x),
+                min(bottom, hand_bottom + expand_bottom),
+            ),
+            fill=255,
+        )
+
+    protect_mask = ImageChops.lighter(skin_mask, held_object_mask)
+    protect_mask = protect_mask.filter(ImageFilter.GaussianBlur(radius=max(1.5, mask.width / 220)))
+    return Image.composite(Image.new("L", mask.size, 0), mask, protect_mask)
+
+
+def _is_skin_like(red: int, green: int, blue: int, hue: int, saturation: int, value: int) -> bool:
+    return (
+        value > 55
+        and saturation > 35
+        and (hue <= 38 or hue >= 235)
+        and red > blue + 12
+        and red >= green - 18
+    )

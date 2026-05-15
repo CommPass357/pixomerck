@@ -137,6 +137,7 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
         seed: int | None = Form(None),
         strength: float = Form(0.48),
         size: int = Form(512),
+        edit_target: str = Form("subject"),
     ) -> JobView:
         try:
             return await manager.submit(
@@ -147,6 +148,7 @@ def create_app(settings: Settings | None = None, backend: GenerationBackend | No
                 seed=seed,
                 strength=strength,
                 size=size,
+                edit_target=edit_target,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -236,6 +236,48 @@ def test_prepare_inpaint_pair_pads_image_and_mask_to_square(tmp_path: Path) -> N
         assert prepared_mask.getpixel((32, 30)) > 240
 
 
+def test_prepare_inpaint_pair_protects_hands_and_held_object_band(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.png"
+    mask_path = tmp_path / "mask.png"
+    output_image_path = tmp_path / "prepared-source.png"
+    output_mask_path = tmp_path / "prepared-mask.png"
+
+    source = Image.new("RGB", (64, 64), (10, 20, 30))
+    source.paste((60, 100, 160), (16, 4, 48, 60))
+    source.paste((214, 155, 112), (16, 38, 25, 45))
+    source.paste((214, 155, 112), (39, 38, 48, 45))
+    source.paste((20, 22, 24), (23, 39, 41, 47))
+    source.save(source_path)
+    mask = Image.new("L", (64, 64), 0)
+    mask.paste(255, (16, 4, 48, 60))
+    mask.save(mask_path)
+
+    prepare_inpaint_pair(source_path, mask_path, output_image_path, output_mask_path, 64)
+
+    with Image.open(output_mask_path).convert("L") as prepared_mask:
+        assert prepared_mask.getpixel((32, 32)) > 220
+        assert prepared_mask.getpixel((20, 42)) < 16
+        assert prepared_mask.getpixel((32, 42)) < 16
+
+
+def test_prepare_inpaint_pair_can_target_background(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.png"
+    mask_path = tmp_path / "mask.png"
+    output_image_path = tmp_path / "prepared-source.png"
+    output_mask_path = tmp_path / "prepared-mask.png"
+
+    Image.new("RGB", (64, 64), (40, 80, 120)).save(source_path)
+    mask = Image.new("L", (64, 64), 0)
+    mask.paste(255, (20, 8, 44, 60))
+    mask.save(mask_path)
+
+    prepare_inpaint_pair(source_path, mask_path, output_image_path, output_mask_path, 64, "background")
+
+    with Image.open(output_mask_path).convert("L") as prepared_mask:
+        assert prepared_mask.getpixel((10, 10)) > 240
+        assert prepared_mask.getpixel((32, 32)) < 16
+
+
 def test_repair_flat_masked_region_restores_source_when_output_is_gray(tmp_path: Path) -> None:
     source_path = tmp_path / "source.png"
     mask_path = tmp_path / "mask.png"

@@ -42,3 +42,4 @@ class GenerationInput(BaseModel):
     seed: int | None
     strength: float = Field(ge=0.15, le=0.95)
     size: int = Field(ge=256, le=768)
+    edit_target: str = "subject"

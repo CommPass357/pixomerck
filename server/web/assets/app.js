@@ -34,6 +34,10 @@ const els = {
     toolbarGenerateButton: document.querySelector("#toolbarGenerateButton"),
 };
 
+const LEGACY_NEGATIVE_PROMPT = "blurred face, distorted hands, low quality, extra fingers";
+const DEFAULT_NEGATIVE_PROMPT =
+    "blurred face, distorted hands, warped fingers, melted held objects, gray silhouette, low quality, extra fingers";
+
 const PROMPT_PRESETS = [
     {
         label: "Executive Editorial Portrait",
@@ -268,7 +272,9 @@ init();
 async function init() {
     els.apiOrigin.value = localStorage.getItem("pixomerck.apiOrigin") || "";
     els.prompt.value = localStorage.getItem("pixomerck.prompt") || "";
-    els.negativePrompt.value = localStorage.getItem("pixomerck.negativePrompt") || els.negativePrompt.value;
+    const savedNegativePrompt = localStorage.getItem("pixomerck.negativePrompt");
+    els.negativePrompt.value =
+        !savedNegativePrompt || savedNegativePrompt === LEGACY_NEGATIVE_PROMPT ? DEFAULT_NEGATIVE_PROMPT : savedNegativePrompt;
     populatePromptBuilder();
     syncPromptBuilder();
 
@@ -637,6 +643,7 @@ async function generate() {
         form.append("negative_prompt", els.negativePrompt.value.trim());
         form.append("strength", els.strength.value);
         form.append("size", els.size.value);
+        form.append("edit_target", currentEditTarget());
 
         const response = await fetch(`${apiBase()}/v1/jobs`, {
             credentials: "same-origin",
@@ -696,6 +703,14 @@ async function showResult(jobId) {
 
 function authHeaders() {
     return {};
+}
+
+function currentEditTarget() {
+    const hasBackground = Boolean(els.backgroundPreset.value);
+    const hasSubject = Boolean(els.promptPreset.value || els.bodyPreset.value || els.itemPreset.value);
+    if (hasBackground && hasSubject) return "scene";
+    if (hasBackground) return "background";
+    return "subject";
 }
 
 async function responseError(response) {
