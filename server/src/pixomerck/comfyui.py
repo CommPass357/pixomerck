@@ -72,6 +72,7 @@ class ComfyUiBackend(GenerationBackend):
             strength=request.strength,
             width=width,
             height=height,
+            edit_target=request.edit_target,
         )
         response = await client.post(
             f"{self.settings.comfyui_url}/prompt",
@@ -123,10 +124,10 @@ def _default_inpaint_workflow(
     strength: float,
     width: int,
     height: int,
+    edit_target: str = "subject",
 ) -> dict:
-    positive = (
-        f"{prompt}, preserve the same person, realistic photo, detailed face, natural skin texture"
-    )
+    positive = _positive_prompt_text(prompt, edit_target)
+    negative = _negative_prompt_text(negative_prompt, edit_target)
     workflow_json = {
         "1": {
             "class_type": "CheckpointLoaderSimple",
@@ -138,7 +139,7 @@ def _default_inpaint_workflow(
         },
         "3": {
             "class_type": "CLIPTextEncode",
-            "inputs": {"clip": ["1", 1], "text": negative_prompt},
+            "inputs": {"clip": ["1", 1], "text": negative},
         },
         "4": {
             "class_type": "LoadImage",
@@ -211,6 +212,70 @@ def _default_inpaint_workflow(
         },
     }
     return json.loads(json.dumps(workflow_json))
+
+
+def _positive_prompt_text(prompt: str, edit_target: str) -> str:
+    parts = [
+        prompt,
+        "preserve the same person",
+        "realistic photo",
+        "detailed face",
+        "natural skin texture",
+    ]
+    if edit_target in {"background", "scene"}:
+        parts.extend(
+            [
+                "clean architectural background details",
+                "avoid readable signs, posters, labels, logos, and brand marks",
+                "empty background without extra people or portraits",
+            ]
+        )
+    return _join_prompt_parts(parts)
+
+
+def _negative_prompt_text(negative_prompt: str, edit_target: str) -> str:
+    parts = [
+        negative_prompt,
+        "watermark",
+        "signature",
+        "fake text",
+        "gibberish text",
+        "misspelled words",
+        "random letters",
+        "distorted signage",
+        "brand logos",
+        "extra people",
+        "background faces",
+        "portraits of people",
+        "paintings of faces",
+    ]
+    if edit_target in {"background", "scene"}:
+        parts.extend(
+            [
+                "text-heavy background",
+                "readable sign",
+                "poster text",
+                "billboard text",
+                "menu text",
+                "label text",
+            ]
+        )
+    return _join_prompt_parts(parts)
+
+
+def _join_prompt_parts(parts: list[str]) -> str:
+    clean_parts: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        clean = " ".join(part.strip().split())
+        if not clean:
+            continue
+        key = clean.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        clean_parts.append(clean)
+    return ", ".join(clean_parts)
 
 
 def _repair_flat_masked_region(source_path: Path, mask_path: Path, output_path: Path) -> None:

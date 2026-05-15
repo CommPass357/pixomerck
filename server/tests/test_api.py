@@ -328,8 +328,14 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
         strength=0.62,
         width=384,
         height=512,
+        edit_target="background",
     )
 
+    assert "avoid readable signs" in workflow["2"]["inputs"]["text"]
+    assert "empty background without extra people" in workflow["2"]["inputs"]["text"]
+    assert "gibberish text" in workflow["3"]["inputs"]["text"]
+    assert "billboard text" in workflow["3"]["inputs"]["text"]
+    assert "background faces" in workflow["3"]["inputs"]["text"]
     assert workflow["7"]["class_type"] == "ImageScale"
     assert workflow["6"]["inputs"]["width"] == 384
     assert workflow["6"]["inputs"]["height"] == 512

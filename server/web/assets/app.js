@@ -36,7 +36,7 @@ const els = {
 
 const LEGACY_NEGATIVE_PROMPT = "blurred face, distorted hands, low quality, extra fingers";
 const DEFAULT_NEGATIVE_PROMPT =
-    "blurred face, distorted hands, warped fingers, melted held objects, gray silhouette, low quality, extra fingers";
+    "blurred face, distorted hands, warped fingers, melted held objects, gray silhouette, fake text, gibberish text, misspelled words, distorted signage, brand logos, watermark, extra people, background faces, portraits of people, low quality, extra fingers";
 
 const PROMPT_PRESETS = [
     {
