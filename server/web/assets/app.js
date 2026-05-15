@@ -641,9 +641,10 @@ async function generate() {
         form.append("person_mask", maskBlob, "person-mask.png");
         form.append("prompt", prompt);
         form.append("negative_prompt", els.negativePrompt.value.trim());
-        form.append("strength", els.strength.value);
+        const editTarget = currentEditTarget();
+        form.append("strength", currentStrength(editTarget));
         form.append("size", els.size.value);
-        form.append("edit_target", currentEditTarget());
+        form.append("edit_target", editTarget);
 
         const response = await fetch(`${apiBase()}/v1/jobs`, {
             credentials: "same-origin",
@@ -706,11 +707,63 @@ function authHeaders() {
 }
 
 function currentEditTarget() {
-    const hasBackground = Boolean(els.backgroundPreset.value);
-    const hasSubject = Boolean(els.promptPreset.value || els.bodyPreset.value || els.itemPreset.value);
+    const promptIntent = promptEditIntent();
+    const hasBackground = Boolean(els.backgroundPreset.value) || promptIntent.hasBackground;
+    const hasSubject = Boolean(els.promptPreset.value || els.bodyPreset.value || els.itemPreset.value) || promptIntent.hasSubject;
     if (hasBackground && hasSubject) return "scene";
     if (hasBackground) return "background";
     return "subject";
+}
+
+function currentStrength(editTarget) {
+    const value = Number.parseFloat(els.strength.value) || 0.48;
+    if (editTarget === "background") return Math.max(value, 0.72).toFixed(2);
+    if (editTarget === "scene") return Math.max(value, 0.62).toFixed(2);
+    return value.toFixed(2);
+}
+
+function promptEditIntent() {
+    const prompt = els.prompt.value.toLowerCase();
+    const backgroundTerms = [
+        "background",
+        "backdrop",
+        "scene",
+        "environment",
+        "location",
+        "lobby",
+        "studio",
+        "street",
+        "city",
+        "hotel",
+        "palace",
+        "mountain",
+        "desert",
+        "garage",
+        "stage",
+        "moonbase",
+        "bar",
+        "restaurant",
+    ];
+    const subjectTerms = [
+        "outfit",
+        "wardrobe",
+        "clothing",
+        "jacket",
+        "shirt",
+        "suit",
+        "coat",
+        "armor",
+        "body",
+        "hair",
+        "beard",
+        "hands",
+        "prop",
+        "keyboard",
+    ];
+    return {
+        hasBackground: backgroundTerms.some((term) => prompt.includes(term)),
+        hasSubject: subjectTerms.some((term) => prompt.includes(term)),
+    };
 }
 
 async function responseError(response) {

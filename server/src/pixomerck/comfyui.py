@@ -225,6 +225,9 @@ def _positive_prompt_text(prompt: str, edit_target: str) -> str:
     if edit_target in {"background", "scene"}:
         parts.extend(
             [
+                "replace the entire background behind the subject",
+                "fully transform every visible background surface",
+                "do not preserve the original venue details",
                 "clean architectural background details",
                 "avoid readable signs, posters, labels, logos, and brand marks",
                 "empty background without extra people or portraits",

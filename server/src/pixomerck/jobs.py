@@ -74,7 +74,8 @@ class JobManager:
     ) -> JobView:
         _validate_prompt(prompt)
         _validate_size(size)
-        edit_target = _validate_edit_target(edit_target)
+        edit_target = _resolve_edit_target(prompt, edit_target)
+        strength = _effective_strength(strength, edit_target, prompt)
         job_id = uuid.uuid4().hex
         job_dir = self.settings.inputs_dir / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
@@ -181,6 +182,74 @@ def _validate_edit_target(edit_target: str) -> str:
     if normalized not in {"subject", "background", "scene"}:
         raise ValueError("Edit target must be subject, background, or scene.")
     return normalized
+
+
+def _resolve_edit_target(prompt: str, edit_target: str) -> str:
+    normalized = _validate_edit_target(edit_target)
+    if normalized != "subject":
+        return normalized
+
+    prompt_text = prompt.lower()
+    has_background_intent = any(term in prompt_text for term in BACKGROUND_INTENT_TERMS)
+    if not has_background_intent:
+        return normalized
+
+    has_subject_intent = any(term in prompt_text for term in SUBJECT_INTENT_TERMS)
+    return "scene" if has_subject_intent else "background"
+
+
+def _effective_strength(strength: float, edit_target: str, prompt: str) -> float:
+    if _preserve_background_requested(prompt):
+        return strength
+    if edit_target == "background":
+        return max(strength, 0.72)
+    if edit_target == "scene":
+        return max(strength, 0.62)
+    return strength
+
+
+def _preserve_background_requested(prompt: str) -> bool:
+    prompt_text = prompt.lower()
+    return "preserve original location" in prompt_text or "keep the original background" in prompt_text
+
+
+BACKGROUND_INTENT_TERMS = (
+    "background",
+    "backdrop",
+    "scene",
+    "environment",
+    "location",
+    "lobby",
+    "studio",
+    "street",
+    "city",
+    "hotel",
+    "palace",
+    "mountain",
+    "desert",
+    "garage",
+    "stage",
+    "moonbase",
+    "bar",
+    "restaurant",
+)
+
+SUBJECT_INTENT_TERMS = (
+    "outfit",
+    "wardrobe",
+    "clothing",
+    "jacket",
+    "shirt",
+    "suit",
+    "coat",
+    "armor",
+    "body",
+    "hair",
+    "beard",
+    "hands",
+    "prop",
+    "keyboard",
+)
 
 
 def _validate_image(path: Path, field: str) -> None:

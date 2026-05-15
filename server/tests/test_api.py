@@ -11,6 +11,7 @@ from PIL import Image
 from pixomerck.app import create_app
 from pixomerck.comfyui import _default_inpaint_workflow, _repair_flat_masked_region, _restore_protected_source_regions
 from pixomerck.config import Settings
+from pixomerck.jobs import _effective_strength, _resolve_edit_target
 from pixomerck.masking import prepare_inpaint_pair
 from pixomerck.models import GenerationInput, HealthView
 
@@ -216,6 +217,15 @@ def test_rejects_invalid_size(tmp_path: Path) -> None:
     assert response.status_code == 400
 
 
+def test_background_intent_is_detected_and_strength_is_boosted() -> None:
+    prompt = "replace the background with a luxury hotel lobby"
+
+    assert _resolve_edit_target(prompt, "subject") == "background"
+    assert _effective_strength(0.48, "background", prompt) == 0.72
+    assert _effective_strength(0.75, "background", prompt) == 0.75
+    assert _effective_strength(0.48, "background", "keep the original background but improve lighting") == 0.48
+
+
 def test_prepare_inpaint_pair_preserves_aspect_ratio(tmp_path: Path) -> None:
     source_path = tmp_path / "source.png"
     mask_path = tmp_path / "mask.png"
@@ -331,6 +341,7 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
         edit_target="background",
     )
 
+    assert "replace the entire background" in workflow["2"]["inputs"]["text"]
     assert "avoid readable signs" in workflow["2"]["inputs"]["text"]
     assert "empty background without extra people" in workflow["2"]["inputs"]["text"]
     assert "gibberish text" in workflow["3"]["inputs"]["text"]
