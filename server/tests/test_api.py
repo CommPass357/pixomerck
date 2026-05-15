@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from pixomerck.app import create_app
 from pixomerck.comfyui import (
@@ -293,6 +293,25 @@ def test_prepare_inpaint_pair_can_target_background(tmp_path: Path) -> None:
         assert prepared_mask.getpixel((32, 32)) < 16
 
 
+def test_prepare_inpaint_pair_tightens_background_mask_edge_halo(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.png"
+    mask_path = tmp_path / "mask.png"
+    output_image_path = tmp_path / "prepared-source.png"
+    output_mask_path = tmp_path / "prepared-mask.png"
+
+    Image.new("RGB", (64, 64), (40, 80, 120)).save(source_path)
+    mask = Image.new("L", (64, 64), 0)
+    mask.paste(255, (20, 8, 44, 60))
+    mask = mask.filter(ImageFilter.GaussianBlur(radius=2.0))
+    mask.save(mask_path)
+
+    prepare_inpaint_pair(source_path, mask_path, output_image_path, output_mask_path, 64, "background")
+
+    with Image.open(output_mask_path).convert("L") as prepared_mask:
+        assert prepared_mask.getpixel((18, 32)) > 220
+        assert prepared_mask.getpixel((32, 32)) < 16
+
+
 def test_repair_flat_masked_region_restores_source_when_output_is_gray(tmp_path: Path) -> None:
     source_path = tmp_path / "source.png"
     mask_path = tmp_path / "mask.png"
@@ -331,6 +350,28 @@ def test_restore_protected_source_regions_keeps_subject_after_background_edit(tm
     with Image.open(output_path).convert("RGB") as restored:
         assert restored.getpixel((32, 32)) == (220, 170, 110)
         assert restored.getpixel((8, 8)) == (60, 180, 90)
+
+
+def test_restore_protected_source_regions_avoids_soft_source_halo(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.png"
+    mask_path = tmp_path / "mask.png"
+    output_path = tmp_path / "output.png"
+
+    source = Image.new("RGB", (64, 64), (20, 40, 80))
+    source.paste((40, 220, 80), (18, 10, 46, 58))
+    source.paste((220, 170, 110), (22, 14, 42, 54))
+    source.save(source_path)
+    mask = Image.new("L", (64, 64), 255)
+    mask.paste(96, (18, 10, 46, 58))
+    mask.paste(0, (22, 14, 42, 54))
+    mask.save(mask_path)
+    Image.new("RGB", (64, 64), (60, 180, 90)).save(output_path)
+
+    _restore_protected_source_regions(source_path, mask_path, output_path)
+
+    with Image.open(output_path).convert("RGB") as restored:
+        assert restored.getpixel((32, 32)) == (220, 170, 110)
+        assert restored.getpixel((18, 32)) == (60, 180, 90)
 
 
 def test_apply_pro_finish_boosts_low_contrast_output(tmp_path: Path) -> None:

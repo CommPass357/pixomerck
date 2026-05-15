@@ -343,14 +343,19 @@ def _restore_protected_source_regions(source_path: Path, mask_path: Path, output
     result = Image.open(output_path).convert("RGB")
     source = Image.open(source_path).convert("RGB").resize(result.size, Image.Resampling.LANCZOS)
     edit_mask = Image.open(mask_path).convert("L").resize(result.size, Image.Resampling.LANCZOS)
-    protected_mask = ImageOps.invert(edit_mask)
+    protected_mask = _source_restore_mask(edit_mask)
     if protected_mask.point(lambda value: 255 if value > 32 else 0).getbbox() is None:
         return
 
-    protected_mask = protected_mask.filter(ImageFilter.MinFilter(size=3))
-    protected_mask = protected_mask.filter(ImageFilter.GaussianBlur(radius=0.9))
     restored = Image.composite(source, result, protected_mask)
     restored.save(output_path)
+
+
+def _source_restore_mask(edit_mask: Image.Image) -> Image.Image:
+    protected_mask = ImageOps.invert(edit_mask)
+    protected_mask = protected_mask.point(lambda value: 255 if value >= 160 else 0)
+    protected_mask = protected_mask.filter(ImageFilter.MinFilter(size=3))
+    return protected_mask.filter(ImageFilter.GaussianBlur(radius=0.7))
 
 
 def _apply_pro_finish(output_path: Path, edit_target: str) -> None:

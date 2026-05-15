@@ -51,14 +51,25 @@ def prepare_inpaint_pair(
 
 def _edit_mask_for_target(image: Image.Image, person_mask: Image.Image, edit_target: str) -> Image.Image:
     target = (edit_target or "subject").strip().lower()
+    background_mask = _background_edit_mask(person_mask)
     if target == "background":
-        return ImageOps.invert(person_mask)
+        return background_mask
 
     subject_mask = _protect_identity_region(person_mask)
     subject_mask = _protect_hands_and_held_objects(image, subject_mask)
     if target == "scene":
-        return ImageChops.lighter(subject_mask, ImageOps.invert(person_mask))
+        return ImageChops.lighter(subject_mask, background_mask)
     return subject_mask
+
+
+def _background_edit_mask(person_mask: Image.Image) -> Image.Image:
+    protected_person = person_mask.point(lambda value: 255 if value >= 176 else 0)
+    if protected_person.getbbox() is None:
+        return ImageOps.invert(person_mask)
+
+    protected_person = protected_person.filter(ImageFilter.MinFilter(size=5))
+    protected_person = protected_person.filter(ImageFilter.GaussianBlur(radius=0.8))
+    return ImageOps.invert(protected_person)
 
 
 def _create_rembg_mask(source_path: Path, destination: Path) -> None:
