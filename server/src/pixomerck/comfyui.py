@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 import httpx
-from PIL import Image, ImageFilter, ImageOps, ImageStat
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ImageStat
 
 from .backend import GenerationBackend
 from .config import Settings
@@ -43,6 +43,7 @@ class ComfyUiBackend(GenerationBackend):
             _repair_flat_masked_region(request.image_path, request.mask_path, request.output_path)
             if request.edit_target in {"background", "scene"}:
                 _restore_protected_source_regions(request.image_path, request.mask_path, request.output_path)
+            _apply_pro_finish(request.output_path, request.edit_target)
         return request.output_path
 
     async def _upload(self, client: httpx.AsyncClient, path: Path) -> str:
@@ -221,6 +222,14 @@ def _positive_prompt_text(prompt: str, edit_target: str) -> str:
         "realistic photo",
         "detailed face",
         "natural skin texture",
+        "cinematic key art",
+        "high-end professional composite",
+        "dramatic directional lighting",
+        "rich contrast",
+        "vivid but realistic color grade",
+        "detailed materials",
+        "sharp subject detail",
+        "premium poster finish",
     ]
     if edit_target in {"background", "scene"}:
         parts.extend(
@@ -234,6 +243,11 @@ def _positive_prompt_text(prompt: str, edit_target: str) -> str:
                 "clean architectural background details",
                 "avoid readable signs, posters, labels, logos, and brand marks",
                 "empty background without extra people or portraits",
+                "subject naturally embedded in the scene",
+                "integrated shadows under the subject",
+                "cohesive lighting between subject and environment",
+                "atmospheric depth",
+                "cinematic foreground-to-background separation",
             ]
         )
     return _join_prompt_parts(parts)
@@ -268,6 +282,14 @@ def _negative_prompt_text(negative_prompt: str, edit_target: str) -> str:
         "landscape posters",
         "fake windows",
         "duplicated scenery",
+        "flat lighting",
+        "dull colors",
+        "washed out",
+        "low contrast",
+        "amateur composite",
+        "pasted cutout",
+        "mismatched lighting",
+        "plastic skin",
     ]
     if edit_target in {"background", "scene"}:
         parts.extend(
@@ -329,3 +351,24 @@ def _restore_protected_source_regions(source_path: Path, mask_path: Path, output
     protected_mask = protected_mask.filter(ImageFilter.GaussianBlur(radius=0.9))
     restored = Image.composite(source, result, protected_mask)
     restored.save(output_path)
+
+
+def _apply_pro_finish(output_path: Path, edit_target: str) -> None:
+    image = Image.open(output_path).convert("RGB")
+    is_scene = edit_target in {"background", "scene"}
+    graded = ImageOps.autocontrast(image, cutoff=0.4 if is_scene else 0.2)
+    image = Image.blend(image, graded, 0.35 if is_scene else 0.22)
+    image = ImageEnhance.Color(image).enhance(1.12 if is_scene else 1.07)
+    image = ImageEnhance.Contrast(image).enhance(1.13 if is_scene else 1.08)
+    image = ImageEnhance.Sharpness(image).enhance(1.08)
+    if is_scene:
+        image = _apply_subtle_vignette(image)
+    image.save(output_path)
+
+
+def _apply_subtle_vignette(image: Image.Image) -> Image.Image:
+    vignette = Image.radial_gradient("L").resize(image.size, Image.Resampling.BICUBIC)
+    vignette = ImageOps.autocontrast(vignette)
+    alpha = vignette.point(lambda value: max(0, min(32, round((value - 92) * 0.18))))
+    shadow = Image.new("RGB", image.size, (0, 0, 0))
+    return Image.composite(shadow, image, alpha)

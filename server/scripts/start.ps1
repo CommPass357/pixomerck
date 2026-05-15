@@ -9,6 +9,33 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $EnvFile = Join-Path $Root "runtime\pixomerck.env.ps1"
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
 
+function Repair-ProcessPathEnvironment {
+    $pathValue = [Environment]::GetEnvironmentVariable("Path", "Process")
+    if (-not $pathValue) {
+        $pathValue = [Environment]::GetEnvironmentVariable("PATH", "Process")
+    }
+    if (-not $pathValue) {
+        return
+    }
+
+    [Environment]::SetEnvironmentVariable("PATH", $null, "Process")
+    [Environment]::SetEnvironmentVariable("Path", $null, "Process")
+    [Environment]::SetEnvironmentVariable("Path", $pathValue, "Process")
+}
+
+function Get-ListeningProcessId {
+    param([int]$Port)
+
+    $pattern = "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$"
+    $line = netstat -ano | Select-String -Pattern $pattern | Select-Object -First 1
+    if (-not $line) {
+        return $null
+    }
+    return [int]$line.Matches[0].Groups[1].Value
+}
+
+Repair-ProcessPathEnvironment
+
 if (Test-Path $EnvFile) {
     . $EnvFile
 }
@@ -42,9 +69,20 @@ if (-not (Test-Path $Python)) {
 if ($Detached) {
     $log = Join-Path $Root "runtime\server.log"
     $errLog = Join-Path $Root "runtime\server.err.log"
+    $pidPath = Join-Path $Root "runtime\server.pid"
     $process = Start-Process -FilePath $Python -ArgumentList @("-m", "pixomerck.app") -WorkingDirectory $Root -RedirectStandardOutput $log -RedirectStandardError $errLog -PassThru -WindowStyle Hidden
-    $process.Id | Set-Content -Path (Join-Path $Root "runtime\server.pid") -Encoding UTF8
-    Write-Host "Pixomerck server started. PID $($process.Id)"
+    $serverPort = if ($env:PIXOMERCK_PORT) { [int]$env:PIXOMERCK_PORT } else { 8765 }
+    $serverPid = $process.Id
+    for ($attempt = 0; $attempt -lt 20; $attempt++) {
+        Start-Sleep -Milliseconds 500
+        $listenerPid = Get-ListeningProcessId -Port $serverPort
+        if ($listenerPid) {
+            $serverPid = $listenerPid
+            break
+        }
+    }
+    $serverPid | Set-Content -Path $pidPath -Encoding UTF8
+    Write-Host "Pixomerck server started. PID $serverPid"
 } else {
     & $Python -m pixomerck.app
 }

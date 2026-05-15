@@ -36,48 +36,48 @@ const els = {
 
 const LEGACY_NEGATIVE_PROMPT = "blurred face, distorted hands, low quality, extra fingers";
 const DEFAULT_NEGATIVE_PROMPT =
-    "blurred face, distorted hands, warped fingers, melted held objects, gray silhouette, fake text, gibberish text, misspelled words, distorted signage, brand logos, watermark, extra people, background faces, portraits of people, television screens, monitors, framed pictures, wall art, display panels, wall mounted displays, black rectangles, framed artwork, low quality, extra fingers";
+    "blurred face, distorted hands, warped fingers, melted held objects, gray silhouette, fake text, gibberish text, misspelled words, distorted signage, brand logos, watermark, extra people, background faces, portraits of people, television screens, monitors, framed pictures, wall art, display panels, wall mounted displays, black rectangles, framed artwork, flat lighting, dull colors, washed out, low contrast, pasted cutout, amateur composite, mismatched lighting, low quality, extra fingers";
 
 const PROMPT_PRESETS = [
     {
-        label: "Executive Editorial Portrait",
-        prompt: "premium executive editorial portrait, precision-tailored navy suit, crisp shirt, subtle luxury accessories, preserve exact facial identity, expression, hands, posture, body proportions, and any held objects, natural skin texture, 85mm commercial photography",
+        label: "Mythic Pegasus Rider",
+        prompt: "mythic fantasy key art, the same person as a noble rider on a white winged horse, medieval travel cloak, carved staff, distant castle skyline, rolling storm clouds, preserve exact facial identity, beard or hair, expression, natural hands, and believable body proportions, cinematic poster lighting, atmospheric depth, rich painterly realism",
     },
     {
-        label: "Cyberpunk Techwear Campaign",
-        prompt: "premium cyberpunk fashion campaign, tailored matte-black techwear jacket with subtle reflective piping, preserve same face, beard if present, hands, pose, body shape, and held objects, realistic fabric engineering, controlled neon rim light, high-end commercial photography",
+        label: "Deep-Space Explorer",
+        prompt: "professional sci-fi key art, the same person as a deep-space explorer in a detailed armored astronaut suit, starfield and glowing nebula background, reflective helmet details without covering the face, preserve exact facial identity, expression, natural anatomy, and realistic hands, cinematic rim light, high-detail materials, vivid commercial color grade",
     },
     {
-        label: "Sci-Fi Mission Commander",
-        prompt: "cinematic sci-fi mission commander portrait, off-white technical field suit with clean panel seams and mission patches, preserve facial identity, expression, hands, pose, and any held object, realistic fabric folds, premium production-design lighting",
+        label: "Monumental Desert Legends",
+        prompt: "epic desert monument key art, the same person sculpted into a monumental sandstone mountain portrait with heroic scale, warm golden sunset, dust haze, distant mountains, preserve recognizable face, beard or hair, strong facial structure, and natural expression, cinematic poster composition, dramatic contrast, premium fantasy realism",
     },
     {
-        label: "Red Carpet Luxury",
-        prompt: "luxury red-carpet wardrobe transformation, custom deep burgundy velvet dinner jacket, crisp black shirt, refined grooming, preserve identity, expression, hands, and posture, soft studio flash, polished magazine-cover realism",
+        label: "Arcade Cyber Champion",
+        prompt: "high-end cyberpunk arcade champion poster, same person wearing premium black techwear armor with subtle neon accents, futuristic arcade command deck background, preserve exact face, beard or hair, expression, body proportions, hands, and held object if present, cinematic neon rim light, glossy commercial contrast, sharp subject detail",
     },
     {
-        label: "Chrome Couture Armor",
-        prompt: "high-fashion chrome armor concept, lightweight polished graphite and brushed-metal panels over realistic clothing, preserve identity and natural anatomy, dramatic rim lighting, believable reflections, couture magazine shoot",
+        label: "Castle Guardian Poster",
+        prompt: "cinematic medieval guardian portrait, same person in layered leather-and-steel adventurer armor, dramatic castle courtyard background, grounded shadows, preserve exact facial identity, beard or hair, expression, realistic hands, natural anatomy, detailed fabric and metal materials, moody fantasy key-art lighting",
     },
     {
-        label: "Heritage Denim Campaign",
-        prompt: "heritage denim campaign look, dark selvedge denim jacket over a clean white tee, authentic stitching and texture, preserve face and hands, realistic casual portrait, Kodak Portra color, shallow depth of field",
+        label: "Starship Captain",
+        prompt: "premium space-opera captain portrait, same person in tailored command jacket with subtle armor panels, starship bridge environment, volumetric light through panoramic windows, preserve exact facial identity, expression, hands, posture, and body proportions, high-budget production design, vivid but realistic color grade",
     },
     {
-        label: "Luxury Streetwear Lookbook",
-        prompt: "premium streetwear lookbook edit, layered oversized bomber jacket, textured hoodie, designer sneakers if visible, preserve identity, pose, body shape, and held object, soft urban night lighting, photorealistic fashion catalog",
+        label: "Luxury Magazine Cover",
+        prompt: "award-winning magazine cover portrait, same person in precision-tailored luxury wardrobe, premium studio set with clean architectural depth, preserve exact face, beard or hair, expression, hands, posture, and body shape, sculpted softbox lighting, crisp fabric texture, professional editorial retouching",
     },
     {
-        label: "Outdoor Adventure Catalog",
-        prompt: "outdoor adventure catalog styling, weatherproof olive technical jacket with subtle gear details, preserve facial identity and hand placement, realistic fabric wear, crisp natural light, professional lifestyle photography",
+        label: "Stormlit Comic Hero",
+        prompt: "cinematic comic-book hero key art, same person in practical graphite-and-gold hero armor, stormlit city skyline background, preserve exact facial identity, beard or hair, expression, believable hands, and natural proportions, dramatic backlight, high-contrast poster finish, realistic materials",
     },
     {
-        label: "Classic Rock Promo",
-        prompt: "classic rock performer wardrobe, black leather jacket, charcoal shirt, understated silver accessories, preserve face, beard, hands, and pose, dramatic stage backlight, realistic concert-promo portrait",
+        label: "Fantasy Tavern Hero",
+        prompt: "premium fantasy tavern hero portrait, same person in refined adventurer wardrobe with leather straps and cloak, warm candlelit tavern background, preserve exact face, beard or hair, expression, hand placement, and any held object, rich amber lighting, cinematic depth, professional painterly realism",
     },
     {
-        label: "Cinematic Noir Portrait",
-        prompt: "cinematic noir wardrobe edit, tailored black trench coat and dark shirt, preserve the same person and realistic facial details, moody contrast lighting, restrained film grain, premium photoreal portrait",
+        label: "Retro Future Explorer",
+        prompt: "retro-futurist adventure poster, same person in detailed silver-and-charcoal exploration suit, glowing alien landscape background, preserve exact facial identity, beard or hair, expression, natural anatomy, hands, and original pose, vibrant cinematic color, atmospheric haze, high-end commercial key art",
     },
 ];
 
@@ -273,8 +273,7 @@ async function init() {
     els.apiOrigin.value = localStorage.getItem("pixomerck.apiOrigin") || "";
     els.prompt.value = localStorage.getItem("pixomerck.prompt") || "";
     const savedNegativePrompt = localStorage.getItem("pixomerck.negativePrompt");
-    els.negativePrompt.value =
-        !savedNegativePrompt || savedNegativePrompt === LEGACY_NEGATIVE_PROMPT ? DEFAULT_NEGATIVE_PROMPT : savedNegativePrompt;
+    els.negativePrompt.value = shouldUpgradeNegativePrompt(savedNegativePrompt) ? DEFAULT_NEGATIVE_PROMPT : savedNegativePrompt;
     populatePromptBuilder();
     syncPromptBuilder();
 
@@ -322,6 +321,11 @@ function stripLegacyInviteHash() {
     if (!hash.has("pixomerck-key")) return;
     url.hash = "";
     window.history.replaceState(null, document.title, url.toString());
+}
+
+function shouldUpgradeNegativePrompt(value) {
+    if (!value || value === LEGACY_NEGATIVE_PROMPT) return true;
+    return !value.includes("pasted cutout") || !value.includes("flat lighting");
 }
 
 async function login() {
@@ -718,7 +722,7 @@ function currentEditTarget() {
 function currentStrength(editTarget) {
     const value = Number.parseFloat(els.strength.value) || 0.48;
     if (editTarget === "background") return Math.max(value, 0.82).toFixed(2);
-    if (editTarget === "scene") return Math.max(value, 0.62).toFixed(2);
+    if (editTarget === "scene") return Math.max(value, 0.72).toFixed(2);
     return value.toFixed(2);
 }
 
@@ -743,6 +747,19 @@ function promptEditIntent() {
         "moonbase",
         "bar",
         "restaurant",
+        "castle",
+        "space",
+        "starfield",
+        "nebula",
+        "galaxy",
+        "starship",
+        "tavern",
+        "skyline",
+        "poster",
+        "key art",
+        "monument",
+        "pegasus",
+        "horse",
     ];
     const subjectTerms = [
         "outfit",

@@ -204,7 +204,7 @@ def _effective_strength(strength: float, edit_target: str, prompt: str) -> float
     if edit_target == "background":
         return max(strength, 0.82)
     if edit_target == "scene":
-        return max(strength, 0.62)
+        return max(strength, 0.72)
     return strength
 
 

@@ -9,7 +9,12 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from pixomerck.app import create_app
-from pixomerck.comfyui import _default_inpaint_workflow, _repair_flat_masked_region, _restore_protected_source_regions
+from pixomerck.comfyui import (
+    _apply_pro_finish,
+    _default_inpaint_workflow,
+    _repair_flat_masked_region,
+    _restore_protected_source_regions,
+)
 from pixomerck.config import Settings
 from pixomerck.jobs import _effective_strength, _resolve_edit_target
 from pixomerck.masking import prepare_inpaint_pair
@@ -224,6 +229,7 @@ def test_background_intent_is_detected_and_strength_is_boosted() -> None:
     assert _effective_strength(0.48, "background", prompt) == 0.82
     assert _effective_strength(0.9, "background", prompt) == 0.9
     assert _effective_strength(0.48, "background", "keep the original background but improve lighting") == 0.48
+    assert _effective_strength(0.48, "scene", "replace the outfit and background") == 0.72
 
 
 def test_prepare_inpaint_pair_preserves_aspect_ratio(tmp_path: Path) -> None:
@@ -327,6 +333,19 @@ def test_restore_protected_source_regions_keeps_subject_after_background_edit(tm
         assert restored.getpixel((8, 8)) == (60, 180, 90)
 
 
+def test_apply_pro_finish_boosts_low_contrast_output(tmp_path: Path) -> None:
+    output_path = tmp_path / "output.png"
+    image = Image.new("RGB", (64, 64), (112, 118, 124))
+    image.paste((144, 148, 150), (16, 16, 48, 48))
+    image.save(output_path)
+
+    _apply_pro_finish(output_path, "scene")
+
+    with Image.open(output_path).convert("RGB") as finished:
+        assert finished.size == (64, 64)
+        assert finished.getpixel((32, 32)) != (144, 148, 150)
+
+
 def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
     workflow = _default_inpaint_workflow(
         model="sd-v1-5-inpainting.safetensors",
@@ -342,6 +361,10 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
     )
 
     assert "replace the entire background" in workflow["2"]["inputs"]["text"]
+    assert "cinematic key art" in workflow["2"]["inputs"]["text"]
+    assert "high-end professional composite" in workflow["2"]["inputs"]["text"]
+    assert "vivid but realistic color grade" in workflow["2"]["inputs"]["text"]
+    assert "subject naturally embedded" in workflow["2"]["inputs"]["text"]
     assert "avoid readable signs" in workflow["2"]["inputs"]["text"]
     assert "avoid screens" in workflow["2"]["inputs"]["text"]
     assert "plain undecorated walls" in workflow["2"]["inputs"]["text"]
@@ -351,6 +374,8 @@ def test_comfyui_workflow_converts_mask_image_to_mask() -> None:
     assert "background faces" in workflow["3"]["inputs"]["text"]
     assert "television screens" in workflow["3"]["inputs"]["text"]
     assert "black rectangles" in workflow["3"]["inputs"]["text"]
+    assert "flat lighting" in workflow["3"]["inputs"]["text"]
+    assert "pasted cutout" in workflow["3"]["inputs"]["text"]
     assert workflow["7"]["class_type"] == "ImageScale"
     assert workflow["6"]["inputs"]["width"] == 384
     assert workflow["6"]["inputs"]["height"] == 512
